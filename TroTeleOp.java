@@ -66,6 +66,8 @@ public class TroTeleOp extends OpMode
 
     private DcMotor leftMotor;
     private DcMotor rightMotor;
+    private int reverse = 1; // 1 when normal, -1 when reversed.
+    private boolean wasAPressed = false;
 
     /*
      * Code to run ONCE when the driver hits INIT
@@ -83,8 +85,8 @@ public class TroTeleOp extends OpMode
 
         // eg: Set the drive motor directions:
         // Reverse the motor that runs backwards when connected directly to the battery
-        // leftMotor.setDirection(DcMotor.Direction.FORWARD); // Set to REVERSE if using AndyMark motors
-        //  rightMotor.setDirection(DcMotor.Direction.REVERSE);// Set to FORWARD if using AndyMark motors
+       // leftMotor.setDirection(DcMotor.Direction.REVERSE); // Set to REVERSE if using AndyMark motors
+       // rightMotor.setDirection(DcMotor.Direction.FORWARD);// Set to FORWARD if using AndyMark motors
         // telemetry.addData("Status", "Initialized");
     }
 
@@ -111,8 +113,13 @@ public class TroTeleOp extends OpMode
         telemetry.addData("Status", "Running: " + runtime.toString());
 
         // eg: Run wheels in tank mode (note: The joystick goes negative when pushed forwards)
-        leftMotor.setPower(-gamepad1.left_stick_y);
-        rightMotor.setPower(-gamepad1.right_stick_y);
+        leftMotor.setPower(gamepad1.left_stick_y * reverse);
+        rightMotor.setPower(-gamepad1.right_stick_y * reverse);
+
+        if (gamepad1.a == true && wasAPressed == false) {
+            reverse *= -1;
+        }
+        wasAPressed = gamepad1.a;
     }
 
     /*
