@@ -11,10 +11,13 @@ public class TroAuto extends LinearOpMode {
 
     /* Declare OpMode members. */
     private ElapsedTime     runtime = new ElapsedTime();
-    static final double     COUNTS_PER_INCH = (360 / 3.14159);
+    static final double PI = 3.14159;
+    static final double     COUNTS_PER_INCH = 360 / PI;
 
     private DcMotor leftMotor;
     private DcMotor rightMotor;
+    private DcMotor elevatorMotor;
+    private DcMotor collectorMotor;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -30,6 +33,8 @@ public class TroAuto extends LinearOpMode {
 
         leftMotor  = hardwareMap.dcMotor.get("left motor");
         rightMotor = hardwareMap.dcMotor.get("right motor");
+        elevatorMotor = hardwareMap.dcMotor.get("elevator");
+        collectorMotor = hardwareMap.dcMotor.get("collector");
 
         leftMotor.setDirection(DcMotor.Direction.REVERSE);
 
@@ -51,11 +56,36 @@ public class TroAuto extends LinearOpMode {
 
         // Step through each leg of the path,
         // Note: Reverse movement is obtained by setting a negative distance (not speed)
-        encoderDrive(1,  48,  48, 5.0);  // S1: Forward 47 Inches with 5 Sec timeout
-        encoderDrive(0.5,   12, -12, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
-        encoderDrive(1, -24, -24, 4.0);  // S3: Reverse 24 Inches with 4 Sec timeout
+//        encoderDrive(0.1, 1, 1, 5);
+        leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        sleep(1000);     // pause for servos to move
+        collectorMotor.setPower(0.5);
+        sleep(2000);
+        collectorMotor.setPower(0);
+
+        elevatorMotor.setPower(-0.5);
+        sleep(1000);
+        elevatorMotor.setPower(0);
+
+        int left = leftMotor.getCurrentPosition();
+        int right = rightMotor.getCurrentPosition();
+
+        leftMotor.setTargetPosition(left + 100);
+        rightMotor.setTargetPosition(right + 100);
+
+        leftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+      //  leftMotor.setPower(0.2);
+      //  rightMotor.setPower(0.2);
+
+      //  while (leftMotor.isBusy() || rightMotor.isBusy()) {idle();}
+
+      //  leftMotor.setPower(0);
+      //  rightMotor.setPower(0);
+
+//        sleep(100);     // pause for servos to move
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
@@ -94,7 +124,7 @@ public class TroAuto extends LinearOpMode {
             rightMotor.setPower(Math.abs(speed));
 
             // keep looping while we are still active, and there is time left, and both motors are running.
-            while (opModeIsActive() &&
+            /*while (opModeIsActive() &&
                     (runtime.seconds() < timeoutS) &&
                     (leftMotor.isBusy() && rightMotor.isBusy())) {
 
@@ -107,17 +137,22 @@ public class TroAuto extends LinearOpMode {
 
                 // Allow time for other processes to run.
                 idle();
+            }*/
+
+            while(leftMotor.isBusy() && rightMotor.isBusy()){
+                idle();
             }
 
             // Stop all motion;
             leftMotor.setPower(0);
             rightMotor.setPower(0);
 
-            // Turn off RUN_TO_POSITION
             leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-            //  sleep(250);   // optional pause after each move
         }
+    }
+
+    public void encoderRotate(double speed, double rotations, double timeoutS) throws InterruptedException {
+        encoderDrive(speed, -8 * rotations * PI, 8 * rotations * PI, timeoutS);
     }
 }

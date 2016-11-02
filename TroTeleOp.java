@@ -65,6 +65,10 @@ public class TroTeleOp extends OpMode
 
     private DcMotor leftMotor;
     private DcMotor rightMotor;
+    private DcMotor elevatorMotor;
+    private DcMotor collectorMotor;
+    private DcMotor leftLauncherMotor;
+    private DcMotor rightLauncherMotor;
     private int reverse = 1; // 1 when normal, -1 when reversed.
     private boolean wasAPressed = false;
 
@@ -81,6 +85,11 @@ public class TroTeleOp extends OpMode
          */
         leftMotor  = hardwareMap.dcMotor.get("left motor");
         rightMotor = hardwareMap.dcMotor.get("right motor");
+        elevatorMotor = hardwareMap.dcMotor.get("elevator");
+        collectorMotor = hardwareMap.dcMotor.get("collector");
+        leftLauncherMotor = hardwareMap.dcMotor.get("left launcher");
+        rightLauncherMotor = hardwareMap.dcMotor.get("right launcher");
+
 
         // eg: Set the drive motor directions:
         // Reverse the motor that runs backwards when connected directly to the battery
@@ -114,6 +123,13 @@ public class TroTeleOp extends OpMode
         // eg: Run wheels in tank mode (note: The joystick goes negative when pushed forwards)
         leftMotor.setPower(gamepad1.left_stick_y * reverse);
         rightMotor.setPower(-gamepad1.right_stick_y * reverse);
+
+        elevatorMotor.setPower(gamepad2.left_stick_y);
+
+        leftLauncherMotor.setPower(-gamepad2.right_stick_y);
+        rightLauncherMotor.setPower(gamepad2.right_stick_y);
+
+        telemetry.addData("gp2 right stick y", gamepad2.right_stick_y);
 
         if (gamepad1.a == true && wasAPressed == false) {
             reverse *= -1;
