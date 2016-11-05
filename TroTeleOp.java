@@ -71,6 +71,7 @@ public class TroTeleOp extends OpMode
     private DcMotor rightLauncherMotor;
     private int reverse = 1; // 1 when normal, -1 when reversed.
     private boolean wasAPressed = false;
+    private double speed = 1; // 0 to 1
 
     /*
      * Code to run ONCE when the driver hits INIT
@@ -121,8 +122,8 @@ public class TroTeleOp extends OpMode
         telemetry.addData("Status", "Running: " + runtime.toString());
 
         // eg: Run wheels in tank mode (note: The joystick goes negative when pushed forwards)
-        leftMotor.setPower(gamepad1.left_stick_y * reverse);
-        rightMotor.setPower(-gamepad1.right_stick_y * reverse);
+        leftMotor.setPower(gamepad1.left_stick_y * reverse * speed);
+        rightMotor.setPower(-gamepad1.right_stick_y * reverse * speed);
 
         elevatorMotor.setPower(gamepad2.left_stick_y);
 
@@ -130,11 +131,15 @@ public class TroTeleOp extends OpMode
         rightLauncherMotor.setPower(gamepad2.right_stick_y);
 
         telemetry.addData("gp2 right stick y", gamepad2.right_stick_y);
+        telemetry.addData("left encoder", leftMotor.getCurrentPosition());
+        telemetry.addData("right encoder", rightMotor.getCurrentPosition());
 
         if (gamepad1.a == true && wasAPressed == false) {
             reverse *= -1;
         }
         wasAPressed = gamepad1.a;
+
+        collectorMotor.setPower(gamepad2.b ? 1 : 0);
     }
 
     /*
