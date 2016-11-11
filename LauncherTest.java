@@ -35,7 +35,6 @@ public class TroTeleOp extends OpMode
         elevatorMotor = hardwareMap.dcMotor.get("elevator");
         leftLauncherMotor = hardwareMap.dcMotor.get("left launcher");
         rightLauncherMotor = hardwareMap.dcMotor.get("right launcher");
-        voltageSensor = hardwareMap.VoltageSensor.get("voltage sensor");
     }
 
     /*
@@ -72,7 +71,7 @@ public class TroTeleOp extends OpMode
     }
     
     public void launch() {
-    	double voltage = voltageSensor.getVoltage();
+    	double voltage = hardwareMap.voltageSensor.get("Motor Controller 1").getVoltage();
     	if (voltage > power * 2) {
     		leftLauncherMotor.setPower(power / voltage);
     		rightLauncherMotor.setPower(-power / voltage);
