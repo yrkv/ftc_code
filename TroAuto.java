@@ -65,13 +65,26 @@ public class TroAuto extends LinearOpMode {
         // Step through each leg of the path,
         // Note: Reverse movement is obtained by setting a negative distance (not speed)
 //        encoderDrive(0.1, 1, 1, 5);
-        leftLauncherMotor.setPower(0.35);
-        rightLauncherMotor.setPower(-0.35);
-        sleep(2000);
-        elevatorMotor.setPower(-0.75);
-        sleep(2000);
+        leftLauncherMotor.setPower(0.37);
+        rightLauncherMotor.setPower(-0.37);
+        sleep(2700);
+        elevatorMotor.setPower(-0.5);
+        sleep(400);
+        elevatorMotor.setPower(0);
+        leftLauncherMotor.setPower(0);
+        rightLauncherMotor.setPower(0);
+        sleep(10000);
 
-     //   encoderDrive(0.8,10,10,10);
+        leftLauncherMotor.setPower(0.37);
+        rightLauncherMotor.setPower(-0.37);
+        sleep(2700);
+        elevatorMotor.setPower(-0.5);
+        sleep(1000);
+        elevatorMotor.setPower(0);
+        leftLauncherMotor.setPower(0);
+        leftLauncherMotor.setPower(0);
+
+       // encoderDrive(1,45,45,10);
         //leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         //rightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
@@ -94,6 +107,9 @@ public class TroAuto extends LinearOpMode {
     {
         if (colorSensor.red() > colorSensor.blue()) return true;
         return false;
+    }
+    public void LineFollower()
+    {
     }
 
     public void moveToPosistion(DcMotor motor, int encoderCounts, double power) throws InterruptedException {

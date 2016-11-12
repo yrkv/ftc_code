@@ -38,6 +38,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import java.text.SimpleDateFormat;
@@ -72,6 +73,9 @@ public class TroTeleOp extends OpMode
     private int reverse = 1; // 1 when normal, -1 when reversed.
     private boolean wasAPressed = false;
     private double speed = 1; // 0 to 1
+    private VoltageSensor voltageSensor;
+    private double power = 1; // number of volts it tries to send.
+    private double changeRate = 0.05;
 
     /*
      * Code to run ONCE when the driver hits INIT
@@ -120,17 +124,24 @@ public class TroTeleOp extends OpMode
     @Override
     public void loop() {
         telemetry.addData("Status", "Running: " + runtime.toString());
-
+        telemetry.addData("Status", "Running: " + runtime.toString());
+        telemetry.addData("power", power);
         // eg: Run wheels in tank mode (note: The joystick goes negative when pushed forwards)
-        leftMotor.setPower(gamepad1.left_stick_y * reverse * speed);
-        rightMotor.setPower(-gamepad1.right_stick_y * reverse * speed);
+        if (reverse == 1) {
+            leftMotor.setPower(gamepad1.left_stick_y * speed);
+            rightMotor.setPower(-gamepad1.right_stick_y * speed);
+        }
+        if (reverse == -1) {
+            leftMotor.setPower(-gamepad1.right_stick_y * speed);
+            rightMotor.setPower(gamepad1.left_stick_y * speed);
+        }
 
         elevatorMotor.setPower(gamepad2.left_stick_y);
 
-        leftLauncherMotor.setPower(-gamepad2.right_stick_y);
-        rightLauncherMotor.setPower(gamepad2.right_stick_y);
+        leftLauncherMotor.setPower(-gamepad2.right_stick_y/2);
+        rightLauncherMotor.setPower(gamepad2.right_stick_y/2);
 
-        telemetry.addData("gp2 right stick y", gamepad2.right_stick_y);
+        telemetry.addData("gp2 right stick y", gamepad2.right_stick_y/2);
         telemetry.addData("left encoder", leftMotor.getCurrentPosition());
         telemetry.addData("right encoder", rightMotor.getCurrentPosition());
 
@@ -140,6 +151,9 @@ public class TroTeleOp extends OpMode
         wasAPressed = gamepad1.a;
 
         collectorMotor.setPower(gamepad2.b ? 1 : 0);
+
+        if (gamepad1.y) launch();
+
     }
 
     /*
@@ -148,5 +162,22 @@ public class TroTeleOp extends OpMode
     @Override
     public void stop() {
     }
-
+    public void launch() {
+        double voltage = hardwareMap.voltageSensor.get("Motor Controller 1").getVoltage();
+        if (voltage > power * 2) {
+            leftLauncherMotor.setPower(power / voltage);
+            rightLauncherMotor.setPower(-power / voltage);
+            long t = System.currentTimeMillis();
+            while (System.currentTimeMillis() < t + 2500) {}
+            elevatorMotor.setPower(-1);
+            long t1 = System.currentTimeMillis();
+            while (System.currentTimeMillis() < t + 500) {}
+            elevatorMotor.setPower(0);
+            leftLauncherMotor.setPower(0);
+            rightLauncherMotor.setPower(0);
+        }
+        while (!(gamepad1.a || gamepad1.b || gamepad1.x)) {}
+        if (gamepad1.a) power -= changeRate;
+        if (gamepad1.x) power += changeRate;
+    }
 }
