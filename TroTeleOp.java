@@ -74,8 +74,8 @@ public class TroTeleOp extends OpMode
     private boolean wasAPressed = false;
     private double speed = 1; // 0 to 1
     private VoltageSensor voltageSensor;
-    private double power = 1; // number of volts it tries to send.
-    private double changeRate = 0.05;
+    private double power = 2.5; // number of volts it tries to send.
+    private double changeRate = 0.25;
 
     /*
      * Code to run ONCE when the driver hits INIT

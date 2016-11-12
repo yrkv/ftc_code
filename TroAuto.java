@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Autonomous(name="Pushbot: Auto Drive By Encoder", group="Pushbot")
@@ -13,7 +14,7 @@ public class TroAuto extends LinearOpMode {
     /* Declare OpMode members. */
     private ElapsedTime     runtime = new ElapsedTime();
     static final double PI = 3.14159;
-    static final double     COUNTS_PER_INCH = 360 / PI;
+    static final double     COUNTS_PER_INCH = 105 / PI;
 
     private DcMotor leftMotor;
     private DcMotor rightMotor;
@@ -23,8 +24,11 @@ public class TroAuto extends LinearOpMode {
     private DcMotor rightLauncherMotor;
     private int reverse = 1; // 1 when normal, -1 when reversed.
 
-    private ColorSensor colorSensor;
-
+    /*private ColorSensor colorSensor;
+    private VoltageSensor voltageSensor;
+    private double power = 2.5; // number of volts it tries to send.
+    private double changeRate = 0.25;
+*/
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -65,7 +69,7 @@ public class TroAuto extends LinearOpMode {
         // Step through each leg of the path,
         // Note: Reverse movement is obtained by setting a negative distance (not speed)
 //        encoderDrive(0.1, 1, 1, 5);
-        leftLauncherMotor.setPower(0.37);
+  /*      leftLauncherMotor.setPower(0.37);
         rightLauncherMotor.setPower(-0.37);
         sleep(2700);
         elevatorMotor.setPower(-0.5);
@@ -83,14 +87,16 @@ public class TroAuto extends LinearOpMode {
         elevatorMotor.setPower(0);
         leftLauncherMotor.setPower(0);
         leftLauncherMotor.setPower(0);
-
-       // encoderDrive(1,45,45,10);
+*/
+        encoderDrive(1,12,12,10);
         //leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         //rightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
 //        encoderRotate(0.5, 90, 10);
 
         telemetry.addData("Path", "Complete");
+        //telemetry.addData("power", power);
+
         telemetry.update();
     }
 
@@ -103,7 +109,7 @@ public class TroAuto extends LinearOpMode {
      *  3) Driver stops the opmode running.
      */
 
-    public boolean redBlue() // true if red, false if blue
+  /*  public boolean redBlue() // true if red, false if blue
     {
         if (colorSensor.red() > colorSensor.blue()) return true;
         return false;
@@ -111,7 +117,24 @@ public class TroAuto extends LinearOpMode {
     public void LineFollower()
     {
     }
-
+    public void launch() {
+        double voltage = hardwareMap.voltageSensor.get("Motor Controller 1").getVoltage();
+        if (voltage > power * 2) {
+            leftLauncherMotor.setPower(power / voltage);
+            rightLauncherMotor.setPower(-power / voltage);
+            long t = System.currentTimeMillis();
+            while (System.currentTimeMillis() < t + 2500) {}
+            elevatorMotor.setPower(-1);
+            long t1 = System.currentTimeMillis();
+            while (System.currentTimeMillis() < t + 500) {}
+            elevatorMotor.setPower(0);
+            leftLauncherMotor.setPower(0);
+            rightLauncherMotor.setPower(0);
+        }
+        while (!(gamepad1.a || gamepad1.b || gamepad1.x)) {}
+        if (gamepad1.a) power -= changeRate;
+        if (gamepad1.x) power += changeRate;
+    }*/
     public void moveToPosistion(DcMotor motor, int encoderCounts, double power) throws InterruptedException {
         int currPos = motor.getCurrentPosition();
         power = power > 1 ? 1 : power < -1 ? -1 : power;
