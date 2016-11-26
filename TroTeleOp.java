@@ -32,14 +32,20 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 package org.firstinspires.ftc.robotcontroller.external.samples.ftc_code;
 
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
+import com.qualcomm.robotcore.hardware.GyroSensor;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.ThreadPool;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -67,15 +73,28 @@ public class TroTeleOp extends OpMode
     private DcMotor leftMotor;
     private DcMotor rightMotor;
     private DcMotor elevatorMotor;
-    private DcMotor collectorMotor;
+   // private DcMotor collectorMotor;
     private DcMotor leftLauncherMotor;
     private DcMotor rightLauncherMotor;
+    private Servo buttonPusher;
+    private ColorSensor beaconColorSensor;
+    private ColorSensor lineColorSensor;
+    private ModernRoboticsI2cGyro gyro;
+//    private DistanceSensor distanceSensor;
+
     private int reverse = 1; // 1 when normal, -1 when reversed.
     private boolean wasAPressed = false;
     private double speed = 1; // 0 to 1
-    private VoltageSensor voltageSensor;
-    private double power = 2.5; // number of volts it tries to send.
-    private double changeRate = 0.25;
+   // private VoltageSensor voltageSensor;
+    private double power = 3.81; // number of volts it tries to send.
+    private double changeRate = 0.0005;
+
+    private int accelerationTime = 4000;
+    private int elevatorTime = 400;
+
+    private boolean launch = false;
+
+    private long startLaunch = 0;
 
     /*
      * Code to run ONCE when the driver hits INIT
@@ -91,9 +110,15 @@ public class TroTeleOp extends OpMode
         leftMotor  = hardwareMap.dcMotor.get("left motor");
         rightMotor = hardwareMap.dcMotor.get("right motor");
         elevatorMotor = hardwareMap.dcMotor.get("elevator");
-        collectorMotor = hardwareMap.dcMotor.get("collector");
+      //  collectorMotor = hardwareMap.dcMotor.get("collector");
         leftLauncherMotor = hardwareMap.dcMotor.get("left launcher");
         rightLauncherMotor = hardwareMap.dcMotor.get("right launcher");
+
+        beaconColorSensor = hardwareMap.colorSensor.get("beacon color sensor");
+        lineColorSensor = hardwareMap.colorSensor.get("line color sensor");
+        gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyro");
+
+        buttonPusher = hardwareMap.servo.get("beacon servo");
 
 
         // eg: Set the drive motor directions:
@@ -108,6 +133,7 @@ public class TroTeleOp extends OpMode
      */
     @Override
     public void init_loop() {
+
     }
 
     /*
@@ -116,6 +142,8 @@ public class TroTeleOp extends OpMode
     @Override
     public void start() {
         runtime.reset();
+        beaconColorSensor.enableLed(true);
+        lineColorSensor.enableLed(true);
     }
 
     /*
@@ -123,37 +151,42 @@ public class TroTeleOp extends OpMode
      */
     @Override
     public void loop() {
-        telemetry.addData("Status", "Running: " + runtime.toString());
-        telemetry.addData("Status", "Running: " + runtime.toString());
         telemetry.addData("power", power);
+        telemetry.addData("voltage", hardwareMap.voltageSensor.get("Motor Controller 1").getVoltage());
+        telemetry.addData("rgb1", beaconColorSensor.red() + ", " + beaconColorSensor.green() + ", " + beaconColorSensor.blue());
+        telemetry.addData("rgb2", lineColorSensor.red() + ", " + lineColorSensor.green() + ", " + lineColorSensor.blue());
+     //   telemetry.addData("gyro", gyro.rawX() + ", " + gyro.rawY() + ", " + gyro.rawZ() + ", " + gyro.getIntegratedZValue());
         // eg: Run wheels in tank mode (note: The joystick goes negative when pushed forwards)
         if (reverse == 1) {
-            leftMotor.setPower(gamepad1.left_stick_y * speed);
-            rightMotor.setPower(-gamepad1.right_stick_y * speed);
+            leftMotor.setPower(gamepad1.right_stick_y * speed);
+            rightMotor.setPower(-gamepad1.left_stick_y * speed);
         }
         if (reverse == -1) {
-            leftMotor.setPower(-gamepad1.right_stick_y * speed);
-            rightMotor.setPower(gamepad1.left_stick_y * speed);
+            leftMotor.setPower(-gamepad1.left_stick_y * speed);
+            rightMotor.setPower(gamepad1.right_stick_y * speed);
         }
 
-        elevatorMotor.setPower(gamepad2.left_stick_y);
 
-        leftLauncherMotor.setPower(-gamepad2.right_stick_y/2);
-        rightLauncherMotor.setPower(gamepad2.right_stick_y/2);
 
+      //  elevatorMotor.setPower(gamepad2.left_stick_y);
+
+        buttonPusher.setPosition(gamepad2.right_stick_y);
         telemetry.addData("gp2 right stick y", gamepad2.right_stick_y/2);
         telemetry.addData("left encoder", leftMotor.getCurrentPosition());
         telemetry.addData("right encoder", rightMotor.getCurrentPosition());
 
-        if (gamepad1.a == true && wasAPressed == false) {
+        if (gamepad1.x == true && wasAPressed == false) {
             reverse *= -1;
         }
-        wasAPressed = gamepad1.a;
+        wasAPressed = gamepad1.x;
 
-        collectorMotor.setPower(gamepad2.b ? 1 : 0);
+//        collectorMotor.setPower(gamepad2.b ? 1 : 0);
 
         if (gamepad1.y) launch();
+        checkLaunch();
 
+        if (gamepad1.a) power -= changeRate;
+        if (gamepad1.b) power += changeRate;
     }
 
     /*
@@ -162,22 +195,31 @@ public class TroTeleOp extends OpMode
     @Override
     public void stop() {
     }
+
+    public void checkLaunch() {
+        if (System.currentTimeMillis() <= startLaunch + accelerationTime + elevatorTime + 100 && launch) {
+            if (System.currentTimeMillis() >= startLaunch + accelerationTime) {
+                elevatorMotor.setPower(-1);
+            }
+
+            if (System.currentTimeMillis() >= startLaunch + accelerationTime + elevatorTime) {
+                elevatorMotor.setPower(0);
+                leftLauncherMotor.setPower(0);
+                rightLauncherMotor.setPower(0);
+                launch = false;
+            }
+        }
+    }
+
     public void launch() {
         double voltage = hardwareMap.voltageSensor.get("Motor Controller 1").getVoltage();
-        if (voltage > power * 2) {
-            leftLauncherMotor.setPower(power / voltage);
-            rightLauncherMotor.setPower(-power / voltage);
-            long t = System.currentTimeMillis();
-            while (System.currentTimeMillis() < t + 2500) {}
-            elevatorMotor.setPower(-1);
-            long t1 = System.currentTimeMillis();
-            while (System.currentTimeMillis() < t + 500) {}
-            elevatorMotor.setPower(0);
-            leftLauncherMotor.setPower(0);
-            rightLauncherMotor.setPower(0);
+        double drop = power / 13.8;
+
+        if (voltage > power) {
+            leftLauncherMotor.setPower(power / (voltage - drop));
+            rightLauncherMotor.setPower(-power / (voltage - drop));
+            startLaunch = System.currentTimeMillis();
+            launch = true;
         }
-        while (!(gamepad1.a || gamepad1.b || gamepad1.x)) {}
-        if (gamepad1.a) power -= changeRate;
-        if (gamepad1.x) power += changeRate;
     }
 }
