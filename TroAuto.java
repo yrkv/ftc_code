@@ -54,7 +54,10 @@ public class TroAuto extends LinearOpMode {
        // collectorMotor = hardwareMap.dcMotor.get("collector");
         leftLauncherMotor = hardwareMap.dcMotor.get("left launcher");
         rightLauncherMotor = hardwareMap.dcMotor.get("right launcher");
+
         beaconServo = hardwareMap.servo.get("beacon servo");
+        beaconServo.scaleRange(0.05, 0.95);
+
         gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyro");
         rightMotor.setDirection(DcMotor.Direction.REVERSE);
 
@@ -107,27 +110,34 @@ public class TroAuto extends LinearOpMode {
         sleep(500);*/
 
 
-        gyroDrive(0.4, 20, 0);
+//        gyroDrive(0.4, 20, 0);
+        encoderDrive(0.8, 25, 25, 5);
 
         gyroTurn(0.3, 180);
 
-        gyroDrive(0.4, -25, 180);
+        encoderDrive(0.6, -25, -25, 5);
 
         double degrees = Math.atan((108-20-25)/(49)) / PI * 180;
         gyroTurn(0.3, 180 - Math.round(degrees));
-//
-//        lineColorSensor.enableLed(true);
-//        int c = 0;
-//        int t = 3;
-//        while (!(lineColorSensor.red() > t && lineColorSensor.green() > t && lineColorSensor.blue() > t) || c > 200) {
-//            gyroDrive(0.2, 0.1, 180 + degrees);
-//            c++;
-//        }
-//
-//        gyroTurn(0.3, 270);
-//
-//        gyroDrive(0.2, 14, 270);
-//
+
+        lineColorSensor.enableLed(true);
+
+        encoderDriveToTape(5, 1, -80, -80, 5);
+        encoderDriveToTape(5, 0.2, 4, 4, 3);
+
+
+        gyroTurn(0.3, 90);
+
+        encoderDrive(0.4, -14, -14, 5);
+
+        encoderDriveToBeacon(5, 0.15, -3, -3, 3);
+
+        beaconServo.setPosition(beaconColorSensor.blue() > beaconColorSensor.red() ? 1 : 0); // adjust for actual servo positions
+
+
+
+        encoderDrive(0.5, -2, -2, 1);
+
 //        while (!(beaconColorSensor.red() > 5 || beaconColorSensor.blue() > 5)) {
 //            gyroDrive(0.06, 0.1, 270);
 //        }
@@ -249,7 +259,7 @@ public class TroAuto extends LinearOpMode {
         // determine turn power based on +/- error
         error = getError(angle);
 
-        if (Math.abs(error) < 0.1) {
+        if (Math.abs(error) <= 1) {
             steer = 0.0;
             leftSpeed  = 0.0;
             rightSpeed = 0.0;
@@ -257,7 +267,7 @@ public class TroAuto extends LinearOpMode {
         }
         else {
             steer = getSteer(error, PCoeff);
-            rightSpeed  = speed * steer * (error / angle * 0.50 + 0.50);
+            rightSpeed  = speed * steer * (Math.abs(error) / 180 * 0.6 + 0.4);
             leftSpeed   = -rightSpeed;
         }
 
@@ -286,5 +296,163 @@ public class TroAuto extends LinearOpMode {
 
     public double getSteer(double error, double PCoeff) {
         return Range.clip(error * PCoeff, -1, 1);
+    }
+
+    public void encoderDrive(double speed,
+                             double leftInches, double rightInches,
+                             double timeoutS) throws InterruptedException {
+        int newLeftTarget;
+        int newRightTarget;
+
+        // Ensure that the opmode is still active
+        if (opModeIsActive()) {
+
+            // Determine new target position, and pass to motor controller
+            newLeftTarget = leftMotor.getCurrentPosition() + (int)(leftInches * COUNTS_PER_INCH);
+            newRightTarget = rightMotor.getCurrentPosition() + (int)(rightInches * COUNTS_PER_INCH);
+            leftMotor.setTargetPosition(newLeftTarget);
+            rightMotor.setTargetPosition(newRightTarget);
+
+            // Turn On RUN_TO_POSITION
+            leftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            rightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+            // reset the timeout time and start motion.
+            runtime.reset();
+            leftMotor.setPower(Math.abs(speed));
+            rightMotor.setPower(Math.abs(speed));
+
+            // keep looping while we are still active, and there is time left, and both motors are running.
+            while (opModeIsActive() &&
+                    (runtime.seconds() < timeoutS) &&
+                    (leftMotor.isBusy() && rightMotor.isBusy())) {
+
+                // Display it for the driver.
+                telemetry.addData("Path1",  "Running to %7d :%7d", newLeftTarget,  newRightTarget);
+                telemetry.addData("Path2",  "Running at %7d :%7d",
+                        leftMotor.getCurrentPosition(),
+                        rightMotor.getCurrentPosition());
+                telemetry.update();
+
+                // Allow time for other processes to run.
+                idle();
+            }
+
+            // Stop all motion;
+            leftMotor.setPower(0);
+            rightMotor.setPower(0);
+
+            // Turn off RUN_TO_POSITION
+            leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+            //  sleep(250);   // optional pause after each move
+        }
+    }
+
+    public void encoderDriveToTape(int threshold, double speed,
+                                   double leftInches, double rightInches,
+                                   double timeoutS) throws InterruptedException {
+        int newLeftTarget;
+        int newRightTarget;
+
+        // Ensure that the opmode is still active
+        if (opModeIsActive()) {
+
+            // Determine new target position, and pass to motor controller
+            newLeftTarget = leftMotor.getCurrentPosition() + (int)(leftInches * COUNTS_PER_INCH);
+            newRightTarget = rightMotor.getCurrentPosition() + (int)(rightInches * COUNTS_PER_INCH);
+            leftMotor.setTargetPosition(newLeftTarget);
+            rightMotor.setTargetPosition(newRightTarget);
+
+            // Turn On RUN_TO_POSITION
+            leftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            rightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+            // reset the timeout time and start motion.
+            runtime.reset();
+            leftMotor.setPower(Math.abs(speed));
+            rightMotor.setPower(Math.abs(speed));
+
+            // keep looping while we are still active, and there is time left, and both motors are running.
+            while (opModeIsActive() &&
+                    (runtime.seconds() < timeoutS) &&
+                    (leftMotor.isBusy() && rightMotor.isBusy()) &&
+                    (lineColorSensor.red() < threshold && lineColorSensor.green() < threshold && lineColorSensor.blue() < threshold)) {
+
+                // Display it for the driver.
+                telemetry.addData("Path1",  "Running to %7d :%7d", newLeftTarget,  newRightTarget);
+                telemetry.addData("Path2",  "Running at %7d :%7d",
+                        leftMotor.getCurrentPosition(),
+                        rightMotor.getCurrentPosition());
+                telemetry.update();
+
+                // Allow time for other processes to run.
+                idle();
+            }
+
+            // Stop all motion;
+            leftMotor.setPower(0);
+            rightMotor.setPower(0);
+
+            // Turn off RUN_TO_POSITION
+            leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+            //  sleep(250);   // optional pause after each move
+        }
+    }
+
+    public void encoderDriveToBeacon(int threshold, double speed,
+                                   double leftInches, double rightInches,
+                                   double timeoutS) throws InterruptedException {
+        int newLeftTarget;
+        int newRightTarget;
+
+        // Ensure that the opmode is still active
+        if (opModeIsActive()) {
+
+            // Determine new target position, and pass to motor controller
+            newLeftTarget = leftMotor.getCurrentPosition() + (int)(leftInches * COUNTS_PER_INCH);
+            newRightTarget = rightMotor.getCurrentPosition() + (int)(rightInches * COUNTS_PER_INCH);
+            leftMotor.setTargetPosition(newLeftTarget);
+            rightMotor.setTargetPosition(newRightTarget);
+
+            // Turn On RUN_TO_POSITION
+            leftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            rightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+            // reset the timeout time and start motion.
+            runtime.reset();
+            leftMotor.setPower(Math.abs(speed));
+            rightMotor.setPower(Math.abs(speed));
+
+            // keep looping while we are still active, and there is time left, and both motors are running.
+            while (opModeIsActive() &&
+                    (runtime.seconds() < timeoutS) &&
+                    (leftMotor.isBusy() && rightMotor.isBusy()) &&
+                    (beaconColorSensor.red() < threshold && beaconColorSensor.blue() < threshold)) {
+
+                // Display it for the driver.
+                telemetry.addData("Path1",  "Running to %7d :%7d", newLeftTarget,  newRightTarget);
+                telemetry.addData("Path2",  "Running at %7d :%7d",
+                        leftMotor.getCurrentPosition(),
+                        rightMotor.getCurrentPosition());
+                telemetry.update();
+
+                // Allow time for other processes to run.
+                idle();
+            }
+
+            // Stop all motion;
+            leftMotor.setPower(0);
+            rightMotor.setPower(0);
+
+            // Turn off RUN_TO_POSITION
+            leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+            //  sleep(250);   // optional pause after each move
+        }
     }
 }

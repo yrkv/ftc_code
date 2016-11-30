@@ -33,22 +33,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.firstinspires.ftc.robotcontroller.external.samples.ftc_code;
 
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.DistanceSensor;
-import com.qualcomm.robotcore.hardware.GyroSensor;
+import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.ThreadPool;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 /**
  * This file contains an example of an iterative (Non-Linear) "OpMode".
@@ -76,7 +67,8 @@ public class TroTeleOp extends OpMode
    // private DcMotor collectorMotor;
     private DcMotor leftLauncherMotor;
     private DcMotor rightLauncherMotor;
-    private Servo buttonPusher;
+    private Servo beaconServo;
+    private Servo collectorServo;
     private ColorSensor beaconColorSensor;
     private ColorSensor lineColorSensor;
     private ModernRoboticsI2cGyro gyro;
@@ -116,10 +108,16 @@ public class TroTeleOp extends OpMode
 
         beaconColorSensor = hardwareMap.colorSensor.get("beacon color sensor");
         lineColorSensor = hardwareMap.colorSensor.get("line color sensor");
+
+        lineColorSensor.setI2cAddress(I2cAddr.create8bit(0x3a));
+        beaconColorSensor.setI2cAddress(I2cAddr.create8bit(0x3c));
+
         gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyro");
 
-        buttonPusher = hardwareMap.servo.get("beacon servo");
+        beaconServo = hardwareMap.servo.get("beacon servo");
+        collectorServo = hardwareMap.servo.get("collector servo");
 
+        beaconServo.scaleRange(0.05, 0.95);
 
         // eg: Set the drive motor directions:
         // Reverse the motor that runs backwards when connected directly to the battery
@@ -170,7 +168,7 @@ public class TroTeleOp extends OpMode
 
       //  elevatorMotor.setPower(gamepad2.left_stick_y);
 
-        buttonPusher.setPosition(gamepad2.right_stick_y);
+        collectorServo.setPosition(gamepad2.right_stick_y);
         telemetry.addData("gp2 right stick y", gamepad2.right_stick_y/2);
         telemetry.addData("left encoder", leftMotor.getCurrentPosition());
         telemetry.addData("right encoder", rightMotor.getCurrentPosition());
