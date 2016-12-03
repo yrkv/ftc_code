@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.robotcontroller.external.samples.ftc_code;
+/*package org.firstinspires.ftc.robotcontroller.external.samples.ftc_code;
 
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -16,7 +16,6 @@ import com.qualcomm.robotcore.util.Range;
 @Autonomous(name="Pushbot: Auto Drive By Encoder", group="Pushbot")
 public class RedAuto extends LinearOpMode {
 
-    Autonom
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -81,3 +80,4 @@ public class RedAuto extends LinearOpMode {
         telemetry.update();
     }
 }
+*/

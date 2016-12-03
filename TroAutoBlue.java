@@ -5,16 +5,13 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.GyroSensor;
 import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 @Autonomous(name="Pushbot: Auto Drive By Encoder", group="Pushbot")
-public class TroAuto extends LinearOpMode {
+public class TroAutoBlue extends LinearOpMode {
 
     /* Declare OpMode members. */
     private ElapsedTime     runtime = new ElapsedTime();
@@ -27,7 +24,7 @@ public class TroAuto extends LinearOpMode {
     private DcMotor leftLauncherMotor;
     private DcMotor rightLauncherMotor;
     
-    private double turnPower = 4.14;
+    private double turnPower = 4.5;
 
     private Servo beaconServo;
 
@@ -79,6 +76,14 @@ public class TroAuto extends LinearOpMode {
         rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // Send telemetry message to indicate successful Encoder reset
+        lineColorSensor.resetDeviceConfigurationForOpMode();
+        lineColorSensor.enableLed(false);
+        lineColorSensor.enableLed(true);
+
+        beaconColorSensor.resetDeviceConfigurationForOpMode();
+        beaconColorSensor.enableLed(true);
+        beaconColorSensor.enableLed(false);
+
         telemetry.addData(">", "Gyro Calibrating. Do Not move!");
         telemetry.update();
         gyro.calibrate();
@@ -91,60 +96,58 @@ public class TroAuto extends LinearOpMode {
 
         telemetry.addData(">", "Gyro Calibrated.  Press Start.");
         telemetry.update();
-
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
 
         beaconServo.setPosition(0);
-        
-        double voltage, drop;
 
-        /*voltage = hardwareMap.voltageSensor.get("Motor Controller 1").getVoltage();
-        drop = power / 13.8;
-        leftLauncherMotor.setPower(power / (voltage - drop));rightLauncherMotor.setPower(-power / (voltage - drop));
+        double p = getAdjustedPower(power);
+        leftLauncherMotor.setPower(p);rightLauncherMotor.setPower(-p);
         sleep(accelerationTime);
         elevatorMotor.setPower(-1);
         sleep(elevatorTime);
-        elevatorMotor.setPower(0);leftLauncherMotor.setPower(-0.75);rightLauncherMotor.setPower(-0.75);
+        elevatorMotor.setPower(0);leftLauncherMotor.setPower(-0.9);rightLauncherMotor.setPower(-0.9);
         sleep(500);
         leftLauncherMotor.setPower(0);rightLauncherMotor.setPower(0);
-        sleep(4500);
+        sleep(3500);
 
-        voltage = hardwareMap.voltageSensor.get("Motor Controller 1").getVoltage();
-        drop = power / 13.8;
-        leftLauncherMotor.setPower(power / (voltage - drop));rightLauncherMotor.setPower(-power / (voltage - drop));
+        leftLauncherMotor.setPower(p*0.9);rightLauncherMotor.setPower(-p*0.9);
         sleep(accelerationTime);
         elevatorMotor.setPower(-1);
         sleep(elevatorTime + 500);
         elevatorMotor.setPower(0);leftLauncherMotor.setPower(0);rightLauncherMotor.setPower(0);
-        sleep(500);*/
+        sleep(500);
 
 
-        encoderDrive(0.5, 20, 20, 5);
+        encoderDrive(0.5, 22, 22, 5);
 
-        gyroTurn(getAdjustedPower(turnPower), -45);
-//        sleep(100);
-//        gyroTurn(0.3, -45);
 
-        lineColorSensor.enableLed(true);
-        encoderDriveToTape(5, 0.5, 57, 57, 5);
+        p = getAdjustedPower(turnPower);
+        gyroTurn(p, -45, 1);
+        sleep(500);
+        gyroTurn(p * 1.2, -45, 0);
+
+        encoderDriveToTape(5, 0.5, 58, 58, 5);
         encoderDrive(1, -0.2, -0.2, 1);
         encoderDriveToTape(5, 0.2, -5, -5, 3);
         lineColorSensor.enableLed(false);
 
-        gyroTurn(getAdjustedPower(turnPower), 90);
-//        sleep(100);
-//        gyroTurn(0.2, 90);
+
+        p = getAdjustedPower(turnPower);
+        gyroTurn(p, 90, 1);
+        sleep(500);
+        gyroTurn(p * 1.2, 90, 0);
 
         encoderDrive(0.4, -15, -15, 5);
 
         encoderDriveToBeacon(3, 0.1, -10, -10, 3);
 
-        beaconServo.setPosition(beaconColorSensor.blue() > beaconColorSensor.red() ? 0 : 1); // adjust for actual servo positions
+        beaconServo.setPosition(beaconColorSensor.blue() > beaconColorSensor.red() ? 1 : 0); // adjust for actual servo positions
 
         encoderDrive(0.5, -2, -2, 1);
         sleep(100);
         encoderDrive(0.5, -4, -4, 1);
+        encoderDrive(0.5, 5, 5, 1);
 
         /*gyroTurn(0.3, 180);
 
@@ -188,7 +191,7 @@ public class TroAuto extends LinearOpMode {
         telemetry.update();
     }
     
-    private void getAdjustedPower(double p) {
+    private double getAdjustedPower(double p) {
     	double voltage = hardwareMap.voltageSensor.get("Motor Controller 1").getVoltage();
         double drop = turnPower / 13.8;
         return power / (voltage - drop);
@@ -275,18 +278,18 @@ public class TroAuto extends LinearOpMode {
         }
     }
 
-    public void gyroTurn (  double speed, double angle)
+    public void gyroTurn (  double speed, double angle, double err)
             throws InterruptedException {
 
         // keep looping while we are still active, and not on heading.
-        while (opModeIsActive() && !onHeading(speed, angle, 0.1)) {
+        while (opModeIsActive() && !onHeading(speed, angle, 0.1, err)) {
             // Update telemetry & Allow time for other processes to run.
             telemetry.update();
             idle();
         }
     }
 
-    boolean onHeading(double speed, double angle, double PCoeff) {
+    boolean onHeading(double speed, double angle, double PCoeff, double err) {
         double   error ;
         double   steer ;
         boolean  onTarget = false ;
@@ -296,7 +299,7 @@ public class TroAuto extends LinearOpMode {
         // determine turn power based on +/- error
         error = getError(angle);
 
-        if (Math.abs(error) == 0) {
+        if (Math.abs(error) <= err) {
             steer = 0.0;
             leftSpeed  = 0.0;
             rightSpeed = 0.0;
@@ -305,7 +308,7 @@ public class TroAuto extends LinearOpMode {
         else {
             steer = getSteer(error, PCoeff);
 
-            double multiplier = Math.abs(error) / 30 * 0.8 + 0.2;
+            double multiplier = Math.abs(error) / 30 * 0.7 + 0.3;
 
             rightSpeed  = speed * steer * (Math.abs(error) > 30 ? 1 : multiplier);
             leftSpeed   = -rightSpeed;
