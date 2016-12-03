@@ -33,8 +33,8 @@ public class TroAuto extends LinearOpMode {
     private ColorSensor lineColorSensor;
     private ColorSensor beaconColorSensor;
 
-    private double power = 3.00; // 4.34
-    private int accelerationTime = 4000;
+    private double power = 3.7; // 4.34
+    private int accelerationTime = 3000;
     private int elevatorTime = 400;
 
     @Override
@@ -57,6 +57,8 @@ public class TroAuto extends LinearOpMode {
 
         beaconServo = hardwareMap.servo.get("beacon servo");
         beaconServo.scaleRange(0.05, 0.95);
+
+
 
         gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyro");
         rightMotor.setDirection(DcMotor.Direction.REVERSE);
@@ -91,14 +93,18 @@ public class TroAuto extends LinearOpMode {
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
 
+        beaconServo.setPosition(0);
+
         /*double voltage = hardwareMap.voltageSensor.get("Motor Controller 1").getVoltage();
         double drop = power / 13.8;
         leftLauncherMotor.setPower(power / (voltage - drop));rightLauncherMotor.setPower(-power / (voltage - drop));
         sleep(accelerationTime);
         elevatorMotor.setPower(-1);
         sleep(elevatorTime);
-        elevatorMotor.setPower(0);leftLauncherMotor.setPower(0);rightLauncherMotor.setPower(0);
-        sleep(8000);
+        elevatorMotor.setPower(0);leftLauncherMotor.setPower(-0.75);rightLauncherMotor.setPower(-0.75);
+        sleep(500);
+        leftLauncherMotor.setPower(0);rightLauncherMotor.setPower(0);
+        sleep(4500);
 
         voltage = hardwareMap.voltageSensor.get("Motor Controller 1").getVoltage();
         drop = power / 13.8;
@@ -110,10 +116,33 @@ public class TroAuto extends LinearOpMode {
         sleep(500);*/
 
 
-//        gyroDrive(0.4, 20, 0);
-        encoderDrive(0.8, 25, 25, 5);
+        encoderDrive(0.5, 20, 20, 5);
 
-        gyroTurn(0.3, 180);
+        gyroTurn(0.3, -45);
+        sleep(100);
+        gyroTurn(0.3, -45);
+
+        lineColorSensor.enableLed(true);
+        encoderDriveToTape(5, 0.5, 57, 57, 5);
+        encoderDrive(1, -0.2, -0.2, 1);
+        encoderDriveToTape(5, 0.2, -5, -5, 3);
+        lineColorSensor.enableLed(false);
+
+        gyroTurn(0.3, 90);
+        sleep(100);
+        gyroTurn(0.2, 90);
+
+        encoderDrive(0.4, -15, -15, 5);
+
+        encoderDriveToBeacon(3, 0.1, -10, -10, 3);
+
+        beaconServo.setPosition(beaconColorSensor.blue() > beaconColorSensor.red() ? 0 : 1); // adjust for actual servo positions
+
+        encoderDrive(0.5, -2, -2, 1);
+        sleep(100);
+        encoderDrive(0.5, -4, -4, 1);
+
+        /*gyroTurn(0.3, 180);
 
         encoderDrive(0.6, -25, -25, 5);
 
@@ -134,9 +163,7 @@ public class TroAuto extends LinearOpMode {
 
         beaconServo.setPosition(beaconColorSensor.blue() > beaconColorSensor.red() ? 1 : 0); // adjust for actual servo positions
 
-
-
-        encoderDrive(0.5, -2, -2, 1);
+        encoderDrive(0.5, -2, -2, 1);*/
 
 //        while (!(beaconColorSensor.red() > 5 || beaconColorSensor.blue() > 5)) {
 //            gyroDrive(0.06, 0.1, 270);
@@ -259,7 +286,7 @@ public class TroAuto extends LinearOpMode {
         // determine turn power based on +/- error
         error = getError(angle);
 
-        if (Math.abs(error) <= 1) {
+        if (Math.abs(error) == 0) {
             steer = 0.0;
             leftSpeed  = 0.0;
             rightSpeed = 0.0;
@@ -267,7 +294,10 @@ public class TroAuto extends LinearOpMode {
         }
         else {
             steer = getSteer(error, PCoeff);
-            rightSpeed  = speed * steer * (Math.abs(error) / 180 * 0.6 + 0.4);
+
+            double multiplier = Math.abs(error) / 30 * 0.8 + 0.2;
+
+            rightSpeed  = speed * steer * (Math.abs(error) > 30 ? 1 : multiplier);
             leftSpeed   = -rightSpeed;
         }
 

@@ -74,14 +74,19 @@ public class TroTeleOp extends OpMode
     private ModernRoboticsI2cGyro gyro;
 //    private DistanceSensor distanceSensor;
 
+
+    private double beaconServoPosition = 0.5;
     private int reverse = 1; // 1 when normal, -1 when reversed.
-    private boolean wasAPressed = false;
+    private boolean wasX1Pressed = false;
+    private boolean wasX2Pressed = false;
+    private boolean wasY1Pressed = false;
     private double speed = 1; // 0 to 1
    // private VoltageSensor voltageSensor;
-    private double power = 3.81; // number of volts it tries to send.
+    private double power = 3.5; // number of volts it tries to send.
     private double changeRate = 0.0005;
+    private boolean automaticBeacons = false;
 
-    private int accelerationTime = 4000;
+    private int accelerationTime = 3000;
     private int elevatorTime = 400;
 
     private boolean launch = false;
@@ -117,7 +122,7 @@ public class TroTeleOp extends OpMode
         beaconServo = hardwareMap.servo.get("beacon servo");
         collectorServo = hardwareMap.servo.get("collector servo");
 
-        beaconServo.scaleRange(0.05, 0.95);
+        beaconServo.scaleRange(0.05, 0.95); // DO NOT REMOVE: Servo will break if you remove this line.
 
         // eg: Set the drive motor directions:
         // Reverse the motor that runs backwards when connected directly to the battery
@@ -140,8 +145,10 @@ public class TroTeleOp extends OpMode
     @Override
     public void start() {
         runtime.reset();
-        beaconColorSensor.enableLed(true);
+
         lineColorSensor.enableLed(true);
+
+        beaconServo.setPosition(beaconServoPosition);
     }
 
     /*
@@ -169,22 +176,33 @@ public class TroTeleOp extends OpMode
       //  elevatorMotor.setPower(gamepad2.left_stick_y);
 
         collectorServo.setPosition(gamepad2.right_stick_y);
-        telemetry.addData("gp2 right stick y", gamepad2.right_stick_y/2);
+
         telemetry.addData("left encoder", leftMotor.getCurrentPosition());
         telemetry.addData("right encoder", rightMotor.getCurrentPosition());
 
-        if (gamepad1.x == true && wasAPressed == false) {
+        if (gamepad1.x == true && wasX1Pressed == false) {
             reverse *= -1;
         }
-        wasAPressed = gamepad1.x;
+        wasX1Pressed = gamepad1.x;
 
-//        collectorMotor.setPower(gamepad2.b ? 1 : 0);
+        if (gamepad1.y == true && wasY1Pressed == false) {
+            reverse *= -1;
+        }
+        wasY1Pressed = gamepad1.y;
 
-        if (gamepad1.y) launch();
+        if (gamepad2.x == true && wasX2Pressed == false) {
+            beaconServoPosition = beaconServoPosition == 0 ? 1 : 0;
+            beaconServo.setPosition(beaconServoPosition);
+        }
+        wasX2Pressed = gamepad2.x;
+
+        if (gamepad2.y) launch();
         checkLaunch();
 
-        if (gamepad1.a) power -= changeRate;
-        if (gamepad1.b) power += changeRate;
+        if (gamepad2.a) power -= changeRate;
+        if (gamepad2.b) power += changeRate;
+
+        beaconColorSensor.enableLed(gamepad2.dpad_down);
     }
 
     /*
