@@ -64,7 +64,8 @@ public class TroTeleOp extends OpMode
     private DcMotor leftMotor;
     private DcMotor rightMotor;
     private DcMotor elevatorMotor;
-   // private DcMotor collectorMotor;
+   // private DcMotor leftCollectorMotor;
+   // private DcMotor rightCollectorMotor
     private DcMotor leftLauncherMotor;
     private DcMotor rightLauncherMotor;
     private Servo beaconServo;
@@ -107,7 +108,10 @@ public class TroTeleOp extends OpMode
         leftMotor  = hardwareMap.dcMotor.get("left motor");
         rightMotor = hardwareMap.dcMotor.get("right motor");
         elevatorMotor = hardwareMap.dcMotor.get("elevator");
-      //  collectorMotor = hardwareMap.dcMotor.get("collector");
+        
+      //  leftCollectorMotor = hardwareMap.dcMotor.get("left collector");
+      //  rightCollectorMotor = hardwareMap.dcMotor.get("right collector");
+      
         leftLauncherMotor = hardwareMap.dcMotor.get("left launcher");
         rightLauncherMotor = hardwareMap.dcMotor.get("right launcher");
 
