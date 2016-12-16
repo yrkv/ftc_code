@@ -110,62 +110,23 @@ public class TroAutoRed extends LinearOpMode {
         sleep(500);*/
 
 
-        int currentSpeed = 0;
+        leftLauncherMotor.setPower(1);
+        rightLauncherMotor.setPower(1);
+
+        sleep(300);
+
         double currentPower = 0.6;
-        int leftEncoder = leftLauncherMotor.getCurrentPosition();
-        int rightEncoder = rightLauncherMotor.getCurrentPosition();
 
-        sleep(100);
+        leftLauncherMotor.setPower(currentPower);
+        rightLauncherMotor.setPower(currentPower);
 
-        boolean launch = false;
-        while (!launch) {
-            currentSpeed = (leftLauncherMotor.getCurrentPosition() - leftEncoder + rightLauncherMotor.getCurrentPosition() - rightEncoder) / 2 * 10;
-
-            int leftEncoder = leftLauncherMotor.getCurrentPosition();
-            int rightEncoder = rightLauncherMotor.getCurrentPosition();
-
-            if (Math.abs(currentSpeed - launcherCountsPerSecond) <= 10) {
-                launch = true;
-        }
-            else if (currentSpeed < launcherCountsPerSecond) {
-                currentPower += 0.01;
-            }
-            else {
-                currentPower -= 0.01;
-            }
-            leftLauncherMotor.setPower(currentPower);
-            rightLauncherMotor.setPower(currentPower);
-            sleep(100);
-        }
+        launch(currentPower);
 
         elevatorMotor.setPower(1);
         sleep(elevatorTime);
         elevatorMotor.setPower(0);
 
-        int leftEncoder = leftLauncherMotor.getCurrentPosition();
-        int rightEncoder = rightLauncherMotor.getCurrentPosition();
-
-        sleep(100);
-        boolean launch = false;
-        while (!launch) {
-            currentSpeed = (leftLauncherMotor.getCurrentPosition() - leftEncoder + rightLauncherMotor.getCurrentPosition() - rightEncoder) / 2 * 10;
-
-            int leftEncoder = leftLauncherMotor.getCurrentPosition();
-            int rightEncoder = rightLauncherMotor.getCurrentPosition();
-
-            if (Math.abs(currentSpeed - launcherCountsPerSecond) <= 10) {
-                launch = true;
-            }
-            else if (currentSpeed < launcherCountsPerSecond) {
-                currentPower += 0.01;
-            }
-            else {
-                currentPower -= 0.01;
-            }
-            leftLauncherMotor.setPower(currentPower);
-            rightLauncherMotor.setPower(currentPower);
-            sleep(100);
-        }
+        launch(currentPower);
 
 
         /*encoderDrive(0.5, 12, 12, 5);
@@ -247,6 +208,33 @@ public class TroAutoRed extends LinearOpMode {
             // Update telemetry & Allow time for other processes to run.
             telemetry.update();
             idle();
+        }
+    }
+
+    void launch(double currentPower) {
+        int leftEncoder = leftLauncherMotor.getCurrentPosition();
+        int rightEncoder = rightLauncherMotor.getCurrentPosition();
+
+        sleep(100);
+        boolean launch = false;
+        while (!launch) {
+            currentSpeed = (leftLauncherMotor.getCurrentPosition() - leftEncoder + rightLauncherMotor.getCurrentPosition() - rightEncoder) / 2 * 10;
+
+            int leftEncoder = leftLauncherMotor.getCurrentPosition();
+            int rightEncoder = rightLauncherMotor.getCurrentPosition();
+
+            if (Math.abs(currentSpeed - launcherCountsPerSecond) <= 10) {
+                launch = true;
+            }
+            else if (currentSpeed < launcherCountsPerSecond) {
+                currentPower += 0.01;
+            }
+            else {
+                currentPower -= 0.01;
+            }
+            leftLauncherMotor.setPower(currentPower);
+            rightLauncherMotor.setPower(currentPower);
+            sleep(100);
         }
     }
 
