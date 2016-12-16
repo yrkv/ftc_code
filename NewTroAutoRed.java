@@ -109,7 +109,7 @@ public class TroAutoRed extends LinearOpMode {
         elevatorMotor.setPower(0);leftLauncherMotor.setPower(0);rightLauncherMotor.setPower(0);
         sleep(500);*/
 
-        boolean launch = false;
+
         int currentSpeed = 0;
         double currentPower = 0.6;
         int leftEncoder = leftLauncherMotor.getCurrentPosition();
@@ -117,6 +117,7 @@ public class TroAutoRed extends LinearOpMode {
 
         sleep(100);
 
+        boolean launch = false;
         while (!launch) {
             currentSpeed = (leftLauncherMotor.getCurrentPosition() - leftEncoder + rightLauncherMotor.getCurrentPosition() - rightEncoder) / 2 * 10;
 
@@ -141,9 +142,13 @@ public class TroAutoRed extends LinearOpMode {
         sleep(elevatorTime);
         elevatorMotor.setPower(0);
 
+        int leftEncoder = leftLauncherMotor.getCurrentPosition();
+        int rightEncoder = rightLauncherMotor.getCurrentPosition();
+
+        sleep(100);
         boolean launch = false;
         while (!launch) {
-            currentSpeed = (leftLauncherMotor.getCurrentPosition() - leftEncoder + rightLauncherMotor.getCurrentPosition() - rightEncoder) / 4 * 5;
+            currentSpeed = (leftLauncherMotor.getCurrentPosition() - leftEncoder + rightLauncherMotor.getCurrentPosition() - rightEncoder) / 2 * 10;
 
             int leftEncoder = leftLauncherMotor.getCurrentPosition();
             int rightEncoder = rightLauncherMotor.getCurrentPosition();
