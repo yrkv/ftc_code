@@ -56,7 +56,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  */
 
 @TeleOp
-public class TroTeleOp extends OpMode
+public class NewTroTeleOp extends OpMode
 {
     /* Declare OpMode members. */
     private ElapsedTime runtime = new ElapsedTime();
@@ -72,7 +72,8 @@ public class TroTeleOp extends OpMode
     private ColorSensor lineColorSensor;
     private ModernRoboticsI2cGyro gyro;
 
-    private double beaconServoPosition = 0.8;
+    private double beaconServoPosition = 0.5;
+    private double collectorServoPosition = 0.5;
     private int reverse = 1; // 1 when normal, -1 when reversed.
     private boolean wasX1Pressed = false;
     private boolean wasX2Pressed = false;
@@ -100,20 +101,25 @@ public class TroTeleOp extends OpMode
         elevatorMotor      = hardwareMap.dcMotor.get("elevator");
         leftLauncherMotor  = hardwareMap.dcMotor.get("left launcher");
         rightLauncherMotor = hardwareMap.dcMotor.get("right launcher");
-
-        beaconColorSensor = hardwareMap.colorSensor.get("beacon color sensor");
+//
+//        beaconColorSensor = hardwareMap.colorSensor.get("beacon color sensor");
         lineColorSensor   = hardwareMap.colorSensor.get("line color sensor");
-
-        lineColorSensor.setI2cAddress(I2cAddr.create8bit(0x3a));
-        beaconColorSensor.setI2cAddress(I2cAddr.create8bit(0x3c));
-
-        gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyro");
+//
+        lineColorSensor.setI2cAddress(I2cAddr.create8bit(0x3c));
+//        beaconColorSensor.setI2cAddress(I2cAddr.create8bit(0x3a));
+//
+//        gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyro");
 
         beaconServo    = hardwareMap.servo.get("beacon servo");
         collectorServo = hardwareMap.servo.get("collector servo");
 
         rightMotor.setDirection(DcMotor.Direction.REVERSE);
-         telemetry.addData("Status", "Initialized");
+        leftLauncherMotor.setDirection(DcMotor.Direction.REVERSE);
+
+        leftLauncherMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightLauncherMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        telemetry.addData("Status", "Initialized");
     }
 
     /*
@@ -131,7 +137,11 @@ public class TroTeleOp extends OpMode
     public void start() {
         runtime.reset();
 
+        lineColorSensor.enableLed(false);
+        lineColorSensor.enableLed(true);
+
         beaconServo.setPosition(beaconServoPosition);
+        collectorServo.setPosition(collectorServoPosition);
     }
 
     /*
@@ -139,20 +149,30 @@ public class TroTeleOp extends OpMode
      */
     @Override
     public void loop() {
-        telemetry.addData("power", power);
+        int t = 4;
+        boolean onLine = (lineColorSensor.red() > t || lineColorSensor.green() > t || lineColorSensor.blue() > t);
+        telemetry.addData("line color sensor", onLine);
 
-        if (reverse == 1) {
-            leftMotor.setPower(gamepad1.right_stick_y * speed);
-            rightMotor.setPower(gamepad1.left_stick_y * speed);
+        collectorServoPosition = (gamepad2.left_stick_y + 1) / 2;
+        collectorServo.setPosition(collectorServoPosition);
+
+        if (gamepad2.right_stick_y != 0) {
+            leftMotor.setPower(gamepad2.right_stick_y);
+            rightMotor.setPower(-gamepad2.right_stick_y);
+        } else {
+            if (reverse == 1) {
+                leftMotor.setPower(gamepad1.right_stick_y);
+                rightMotor.setPower(gamepad1.left_stick_y);
+            }
+            if (reverse == -1) {
+                leftMotor.setPower(gamepad1.left_stick_y * reverse);
+                rightMotor.setPower(gamepad1.right_stick_y * reverse);
+            }
         }
-        if (reverse == -1) {
-            leftMotor.setPower(gamepad1.left_stick_y * speed * reverse);
-            rightMotor.setPower(gamepad1.right_stick_y * speed * reverse);
-        }
 
-        elevatorMotor.setPower(gamepad2.b == true ? 1 : 0);
-
-        collectorServo.setPosition(gamepad2.right_stick_y);
+        elevatorMotor.setPower(gamepad2.b ? 1 : 0);
+        leftLauncherMotor.setPower(gamepad2.a ? 1 : 0);
+        rightLauncherMotor.setPower(gamepad2.a ? 1 : 0);
 
         if (gamepad1.x == true && wasX1Pressed == false) {
             reverse *= -1;
@@ -160,15 +180,15 @@ public class TroTeleOp extends OpMode
         wasX1Pressed = gamepad1.x;
 
         if (gamepad2.x == true && wasX2Pressed == false) {
-            beaconServoPosition = beaconServoPosition == 0 ? 0.8 : 0.2;
+            beaconServoPosition = beaconServoPosition == 0.2 ? 0.75 : 0.2;
             beaconServo.setPosition(beaconServoPosition);
         }
         wasX2Pressed = gamepad2.x;
-
-        if (gamepad2.y) launch();
-        checkLaunch();
-
-        power += changeRate * gamepad2.right_stick_y;
+//
+//        if (gamepad2.y) launch();
+//        checkLaunch();
+//
+//        power += changeRate * gamepad2.right_stick_y;
     }
 
     /*
