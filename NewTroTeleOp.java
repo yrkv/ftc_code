@@ -66,17 +66,19 @@ public class NewTroTeleOp extends OpMode
     private DcMotor elevatorMotor;
     private DcMotor leftLauncherMotor;
     private DcMotor rightLauncherMotor;
-    private Servo beaconServo;
+    private Servo leftServo;
+    private Servo rightServo;
     private Servo collectorServo;
     private ColorSensor beaconColorSensor;
     private ColorSensor lineColorSensor;
     private ModernRoboticsI2cGyro gyro;
 
-    private double beaconServoPosition = 0.5;
     private double collectorServoPosition = 0.5;
-    private int reverse = 1; // 1 when normal, -1 when reversed.
+    private int reverse = -1; // -1 when normal, 1 when reversed.
+    private double movementMultiplier = 1;
     private boolean wasX1Pressed = false;
-    private boolean wasX2Pressed = false;
+    private int rightServoPos = 1;
+    private int leftServoPos = 1;
     private boolean wasY1Pressed = false;
 
    // private VoltageSensor voltageSensor;
@@ -109,8 +111,8 @@ public class NewTroTeleOp extends OpMode
 //        beaconColorSensor.setI2cAddress(I2cAddr.create8bit(0x3a));
 //
 //        gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyro");
-
-        beaconServo    = hardwareMap.servo.get("beacon servo");
+        leftMotor = hardwareMap.servo.get("left servo");
+        rightServo = hardwareMap.servo.get("right servo");
         collectorServo = hardwareMap.servo.get("collector servo");
 
         rightMotor.setDirection(DcMotor.Direction.REVERSE);
@@ -120,6 +122,26 @@ public class NewTroTeleOp extends OpMode
         rightLauncherMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         telemetry.addData("Status", "Initialized");
+    }
+
+    private void toggleRightServo() {
+        if(rightServoPos == 1) {
+            rightServoPos = 0;
+        }
+        else {
+            rightServoPos = 1;
+        }
+        rightServo.setPosition(rightServoPos);
+    }
+
+    private void toggleLeftServo() {
+        if(leftServoPos == 1) {
+            leftServoPos = 0;
+        }
+        else {
+            leftServoPos = 1;
+        }
+        leftServo.setPosition(leftServoPos);
     }
 
     /*
@@ -140,7 +162,8 @@ public class NewTroTeleOp extends OpMode
         lineColorSensor.enableLed(false);
         lineColorSensor.enableLed(true);
 
-        beaconServo.setPosition(beaconServoPosition);
+        rightServo.setPosition(1);
+        leftServo.setPosition(1);
         collectorServo.setPosition(collectorServoPosition);
     }
 
@@ -152,10 +175,33 @@ public class NewTroTeleOp extends OpMode
         int t = 4;
         boolean onLine = (lineColorSensor.red() > t || lineColorSensor.green() > t || lineColorSensor.blue() > t);
         telemetry.addData("line color sensor", onLine);
+        telemetry.addData("line Red:",lineColorSensor.red());
+        telemetry.addData("line Green:",lineColorSensor.green());
+        telemetry.addData("line Red:",lineColorSensor.blue());
 
-        collectorServoPosition = (gamepad2.left_stick_y + 1) / 2;
+        collectorServoPosition = gamepad2.b ? 1 : 0;
         collectorServo.setPosition(collectorServoPosition);
 
+        //Allow player 1 to drive using left and right joysticks
+//        if (gamepad1.right_stick_button) {
+//        } else {
+            if (reverse == 1) {
+                leftMotor.setPower(gamepad1.right_stick_y*movementMultiplier);
+                rightMotor.setPower(gamepad1.left_stick_y*movementMultiplier);
+            }
+            if (reverse == -1) {
+                leftMotor.setPower(gamepad1.left_stick_y * movementMultiplier * reverse);
+                rightMotor.setPower(gamepad1.right_stick_y * movementMultiplier * reverse);
+            }
+
+        if(gamepad1.right_bumper) {
+            movementMultiplier = .5;
+        }
+        else {
+            movementMultiplier = 1;
+        }
+//        }
+        /* Umm this is fuqed
         if (gamepad2.right_stick_y != 0) {
             leftMotor.setPower(gamepad2.right_stick_y);
             rightMotor.setPower(-gamepad2.right_stick_y);
@@ -168,22 +214,46 @@ public class NewTroTeleOp extends OpMode
                 leftMotor.setPower(gamepad1.left_stick_y * reverse);
                 rightMotor.setPower(gamepad1.right_stick_y * reverse);
             }
+        }*/
+
+        //The -1 gets rid of the natural inverse control of the joystick.
+        elevatorMotor.setPower(-1*gamepad2.right_stick_y);
+
+        //When A or Y is pressed, run the launchers at low or high power respectively
+        if(gamepad2.a || gamepad2.y) {
+            //Low power shot
+            if (gamepad2.a) {
+                leftLauncherMotor.setPower(.45);
+                rightLauncherMotor.setPower(.45);
+            }
+            //High power shot
+            if (gamepad2.y) {
+                leftLauncherMotor.setPower(.55);
+                rightLauncherMotor.setPower(.55);
+            }
+        }
+        else {
+            leftLauncherMotor.setPower(0);
+            rightLauncherMotor.setPower(0);
         }
 
-        elevatorMotor.setPower(gamepad2.b ? 1 : 0);
-        leftLauncherMotor.setPower(gamepad2.a ? 1 : 0);
-        rightLauncherMotor.setPower(gamepad2.a ? 1 : 0);
-
+        //Toggle reverse when x is pressed.
         if (gamepad1.x == true && wasX1Pressed == false) {
             reverse *= -1;
         }
+        //This variable is so that it doesnt run through the reverse loop
+        //as fast as it can when the X button is pressed.
         wasX1Pressed = gamepad1.x;
 
-        if (gamepad2.x == true && wasX2Pressed == false) {
-            beaconServoPosition = beaconServoPosition == 0.2 ? 0.75 : 0.2;
-            beaconServo.setPosition(beaconServoPosition);
+        boolean wasRightBumperPressed = gamepad2.right_bumper;
+        if(gamepad2.right_bumper && !wasRightBumperPressed) {
+            toggleRightServo();
         }
-        wasX2Pressed = gamepad2.x;
+
+        boolean wasLeftBumperPressed = gamepad2.left_bumper;
+        if(gamepad2.left_bumper && !wasLeftBumperPressed) {
+            toggleLeftServo();
+        }your mom is a whore
 //
 //        if (gamepad2.y) launch();
 //        checkLaunch();

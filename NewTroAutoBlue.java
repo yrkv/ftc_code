@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 @Autonomous(name="Pushbot: Auto Drive By Encoder", group="Pushbot")
-public class NewTroAutoRed extends LinearOpMode {
+public class NewTroAutoBlue extends LinearOpMode {
 
     /* Declare OpMode members. */
     private ElapsedTime     runtime = new ElapsedTime();
@@ -101,7 +101,7 @@ public class NewTroAutoRed extends LinearOpMode {
         runtime.reset();
 
         leftServo.setPosition(1);
-        rightServo.setPosition(1);
+
 
         leftLauncherMotor.setPower(currentPower);
         rightLauncherMotor.setPower(currentPower);
@@ -127,13 +127,15 @@ public class NewTroAutoRed extends LinearOpMode {
         rightLauncherMotor.setPower(0);
         sleep(100);
 
+        leftServo.setPosition(0.5);
+
         //Drive forward 20 inches.
         encoderDrive(0.5, 20, 20, 5);
 
-        //Turn to -135 degrees.
-        gyroTurn(turnPower, -135, 1);
+        //Turn to 135 degrees.
+        gyroTurn(turnPower, 135, 1);
         sleep(200);
-        gyroTurn(turnPower * turnMultiplier, -135, 0);
+        gyroTurn(turnPower * turnMultiplier, 135, 0);
 
         //Use the line sensor to drive to the beacon tape.
         lineColorSensor.enableLed(true);
@@ -143,19 +145,19 @@ public class NewTroAutoRed extends LinearOpMode {
         lineColorSensor.enableLed(false);
 
         //Turn to 90 degrees (facing the beacon).
-        gyroTurn(turnPower, 90, 1);
+        gyroTurn(turnPower, -90, 1);
         sleep(200);
-        gyroTurn(turnPower * turnMultiplier, 90, 0);
+        gyroTurn(turnPower * turnMultiplier, -90, 0);
 
         //Move closer to the beacon for the sensor.
         encoderDriveToBeacon(3, 0.1, 10, 10, 3);
 
         //Determine which side the red side is on and move the beacon bumper in front of it.
         if (beaconColorSensor.blue() > beaconColorSensor.red()) {
-            rightServo.setPosition(0);
+            leftServo.setPosition(0);
         }
         else {
-            leftServo.setPosition(0);
+            rightServo.setPosition(0);
         }
 
         //Bump the button and back up.
@@ -164,6 +166,7 @@ public class NewTroAutoRed extends LinearOpMode {
         encoderDrive(0.5, 4, 4, 1);
         encoderDrive(0.5, -5, -5, 1);
 
+        //Reset servo positions.
         leftServo.setPosition(1);
         rightServo.setPosition(1);
 
@@ -181,19 +184,21 @@ public class NewTroAutoRed extends LinearOpMode {
         lineColorSensor.enableLed(false);
 
         //Turn to 90 degrees (facing the beacon).
-        gyroTurn(turnPower, 90, 1);
+        gyroTurn(turnPower, -90, 1);
         sleep(200);
-        gyroTurn(turnPower * turnMultiplier, 90, 0);
+        gyroTurn(turnPower * turnMultiplier, -90, 0);
+
+        leftServo.setPosition(0.5);
 
         //Move closer to the beacon for the sensor.
         encoderDriveToBeacon(3, .1, 10, 10, 3);
 
         //Determine which side the red side is on and move the beacon bumper in front of it.
         if (beaconColorSensor.blue() > beaconColorSensor.red()) {
-            rightServo.setPosition(0);
+            leftServo.setPosition(0);
         }
         else {
-            leftServo.setPosition(0);
+            rightServo.setPosition(0);
         }
 
         //Bump the button and back up.
@@ -202,11 +207,11 @@ public class NewTroAutoRed extends LinearOpMode {
         encoderDrive(0.5, 4, 4, 1);
         encoderDrive(0.5, -6, -6, 1);
 
-        rightServo.setPosition(1);
         leftServo.setPosition(1);
+        rightServo.setPosition(1);
 
         //Turn toward at the cap ball.
-        gyroTurn(turnPower, -145, 1);
+        gyroTurn(turnPower, 145, 1);
 
         //Drive to the cap ball to bump it.
         encoderDrive(0.2, 60, 60, 15);
