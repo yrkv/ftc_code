@@ -66,22 +66,32 @@ public class NewTroTeleOp extends OpMode
     private DcMotor elevatorMotor;
     private DcMotor leftLauncherMotor;
     private DcMotor rightLauncherMotor;
+    private DcMotor leftCapBallMotor;
+    private DcMotor rightCapBallMotor;
     private Servo leftServo;
     private Servo rightServo;
     private Servo collectorServo;
+    private Servo capBallServo;
     private ColorSensor beaconColorSensor;
     private ColorSensor lineColorSensor;
     private ModernRoboticsI2cGyro gyro;
 
     private double collectorServoPosition = 0.5;
+    private double capBallServoPos = 0.5;
     private int reverse = -1; // -1 when normal, 1 when reversed.
     private double movementMultiplier = 1;
     private boolean wasX1Pressed = false;
-    private int rightServoPos = 1;
-    private int leftServoPos = 1;
+    private boolean wasLeftBump1Pressed = false;
+    private int rightServoPos = 0;
+    private int leftServoPos = 0;
     private boolean wasY1Pressed = false;
 
-   // private VoltageSensor voltageSensor;
+    private double liftPower = 1;
+
+    boolean wasRightBumperPressed = false;
+    boolean wasLeftBumperPressed = false;
+
+    // private VoltageSensor voltageSensor;
     private double power = 3.5; // number of volts it tries to send.
     private double changeRate = 0.001;
     private boolean automaticBeacons = false;
@@ -103,45 +113,46 @@ public class NewTroTeleOp extends OpMode
         elevatorMotor      = hardwareMap.dcMotor.get("elevator");
         leftLauncherMotor  = hardwareMap.dcMotor.get("left launcher");
         rightLauncherMotor = hardwareMap.dcMotor.get("right launcher");
+        leftCapBallMotor   = hardwareMap.dcMotor.get("left cap ball");
+        rightCapBallMotor  = hardwareMap.dcMotor.get("right cap ball");
 //
-//        beaconColorSensor = hardwareMap.colorSensor.get("beacon color sensor");
+        beaconColorSensor = hardwareMap.colorSensor.get("beacon color sensor");
         lineColorSensor   = hardwareMap.colorSensor.get("line color sensor");
 //
         lineColorSensor.setI2cAddress(I2cAddr.create8bit(0x3c));
-//        beaconColorSensor.setI2cAddress(I2cAddr.create8bit(0x3a));
+        beaconColorSensor.setI2cAddress(I2cAddr.create8bit(0x3a));
 //
-//        gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyro");
-        leftMotor = hardwareMap.servo.get("left servo");
-        rightServo = hardwareMap.servo.get("right servo");
+        gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyro");
         collectorServo = hardwareMap.servo.get("collector servo");
+        capBallServo = hardwareMap.servo.get("cap ball servo");
+
+        leftServo = hardwareMap.servo.get("left servo");
+        rightServo = hardwareMap.servo.get("right servo");
+        leftServo.scaleRange(0.85, 0.95);
+        rightServo.scaleRange(0.85, 0.95);
 
         rightMotor.setDirection(DcMotor.Direction.REVERSE);
         leftLauncherMotor.setDirection(DcMotor.Direction.REVERSE);
 
-        leftLauncherMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        rightLauncherMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         telemetry.addData("Status", "Initialized");
     }
 
     private void toggleRightServo() {
-        if(rightServoPos == 1) {
-            rightServoPos = 0;
-        }
-        else {
-            rightServoPos = 1;
-        }
+        rightServoPos = rightServoPos == 1 ? 0 : 1;
         rightServo.setPosition(rightServoPos);
     }
 
     private void toggleLeftServo() {
-        if(leftServoPos == 1) {
-            leftServoPos = 0;
-        }
-        else {
-            leftServoPos = 1;
-        }
+        leftServoPos = leftServoPos == 1 ? 0 : 1;
         leftServo.setPosition(leftServoPos);
+    }
+
+    private void toggleCapBallServo() {
+        capBallServoPos = capBallServoPos == 0.5 ? 0.2 : 0.5;
+        capBallServo.setPosition(capBallServoPos);
     }
 
     /*
@@ -162,9 +173,10 @@ public class NewTroTeleOp extends OpMode
         lineColorSensor.enableLed(false);
         lineColorSensor.enableLed(true);
 
-        rightServo.setPosition(1);
-        leftServo.setPosition(1);
+        rightServo.setPosition(0);
+        leftServo.setPosition(0);
         collectorServo.setPosition(collectorServoPosition);
+        capBallServo.setPosition(0.5);
     }
 
     /*
@@ -175,47 +187,36 @@ public class NewTroTeleOp extends OpMode
         int t = 4;
         boolean onLine = (lineColorSensor.red() > t || lineColorSensor.green() > t || lineColorSensor.blue() > t);
         telemetry.addData("line color sensor", onLine);
-        telemetry.addData("line Red:",lineColorSensor.red());
-        telemetry.addData("line Green:",lineColorSensor.green());
-        telemetry.addData("line Red:",lineColorSensor.blue());
 
         collectorServoPosition = gamepad2.b ? 1 : 0;
         collectorServo.setPosition(collectorServoPosition);
 
         //Allow player 1 to drive using left and right joysticks
-//        if (gamepad1.right_stick_button) {
-//        } else {
-            if (reverse == 1) {
-                leftMotor.setPower(gamepad1.right_stick_y*movementMultiplier);
-                rightMotor.setPower(gamepad1.left_stick_y*movementMultiplier);
-            }
-            if (reverse == -1) {
-                leftMotor.setPower(gamepad1.left_stick_y * movementMultiplier * reverse);
-                rightMotor.setPower(gamepad1.right_stick_y * movementMultiplier * reverse);
-            }
+        if (reverse == 1) {
+            leftMotor.setPower(gamepad1.right_stick_y*movementMultiplier);
+            rightMotor.setPower(gamepad1.left_stick_y*movementMultiplier);
+        }
+        if (reverse == -1) {
+            leftMotor.setPower(gamepad1.left_stick_y * movementMultiplier * reverse);
+            rightMotor.setPower(gamepad1.right_stick_y * movementMultiplier * reverse);
+        }
 
         if(gamepad1.right_bumper) {
-            movementMultiplier = .5;
+            movementMultiplier = .1;
         }
         else {
             movementMultiplier = 1;
         }
-//        }
-        /* Umm this is fuqed
-        if (gamepad2.right_stick_y != 0) {
-            leftMotor.setPower(gamepad2.right_stick_y);
-            rightMotor.setPower(-gamepad2.right_stick_y);
-        } else {
-            if (reverse == 1) {
-                leftMotor.setPower(gamepad1.right_stick_y);
-                rightMotor.setPower(gamepad1.left_stick_y);
-            }
-            if (reverse == -1) {
-                leftMotor.setPower(gamepad1.left_stick_y * reverse);
-                rightMotor.setPower(gamepad1.right_stick_y * reverse);
-            }
-        }*/
 
+        //Cap ball lifter.
+        if(!gamepad2.dpad_up) {
+            leftCapBallMotor.setPower(gamepad2.dpad_down == true ? liftPower : 0);
+            rightCapBallMotor.setPower(gamepad2.dpad_down == true ? -1 * liftPower : 0);
+        }
+        else {
+            leftCapBallMotor.setPower(-1 * liftPower);
+            rightCapBallMotor.setPower(liftPower);
+        }
         //The -1 gets rid of the natural inverse control of the joystick.
         elevatorMotor.setPower(-1*gamepad2.right_stick_y);
 
@@ -241,19 +242,22 @@ public class NewTroTeleOp extends OpMode
         if (gamepad1.x == true && wasX1Pressed == false) {
             reverse *= -1;
         }
-        //This variable is so that it doesnt run through the reverse loop
-        //as fast as it can when the X button is pressed.
         wasX1Pressed = gamepad1.x;
 
-        boolean wasRightBumperPressed = gamepad2.right_bumper;
         if(gamepad2.right_bumper && !wasRightBumperPressed) {
             toggleRightServo();
         }
+        wasRightBumperPressed = gamepad2.right_bumper;
 
-        boolean wasLeftBumperPressed = gamepad2.left_bumper;
+        if(gamepad1.left_bumper && !wasLeftBump1Pressed) {
+            toggleCapBallServo();
+        }
+        wasLeftBump1Pressed = gamepad1.left_bumper;
+
         if(gamepad2.left_bumper && !wasLeftBumperPressed) {
             toggleLeftServo();
-        }your mom is a whore
+        }
+        wasLeftBumperPressed = gamepad2.left_bumper;
 //
 //        if (gamepad2.y) launch();
 //        checkLaunch();

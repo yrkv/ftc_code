@@ -46,6 +46,7 @@ public class NewTroAutoRed extends LinearOpMode {
         leftLauncherMotor  = hardwareMap.dcMotor.get("left launcher");
         rightLauncherMotor = hardwareMap.dcMotor.get("right launcher");
 
+
         gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyro");
 
         rightMotor.setDirection(DcMotor.Direction.REVERSE);
