@@ -35,6 +35,8 @@ package org.firstinspires.ftc.robotcontroller.external.samples.ftc_code;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.CRServoImpl;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.I2cAddr;
@@ -72,6 +74,7 @@ public class NewTroTeleOp extends OpMode
     private Servo rightServo;
     private Servo collectorServo;
     private Servo capBallServo;
+    private Servo capBallWinch;
     private ColorSensor beaconColorSensor;
     private ColorSensor lineColorSensor;
     private ModernRoboticsI2cGyro gyro;
@@ -96,8 +99,8 @@ public class NewTroTeleOp extends OpMode
     private double changeRate = 0.001;
     private boolean automaticBeacons = false;
 
-    private int accelerationTime = 3000;
-    private int elevatorTime = 400;
+    private int accelerationTime = 400;
+    private int elevatorTime = 600;
 
     private boolean launch = false;
 
@@ -125,6 +128,7 @@ public class NewTroTeleOp extends OpMode
         gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyro");
         collectorServo = hardwareMap.servo.get("collector servo");
         capBallServo = hardwareMap.servo.get("cap ball servo");
+        capBallWinch = hardwareMap.servo.get("cap ball winch");
 
         leftServo = hardwareMap.servo.get("left servo");
         rightServo = hardwareMap.servo.get("right servo");
@@ -221,7 +225,7 @@ public class NewTroTeleOp extends OpMode
         elevatorMotor.setPower(-1*gamepad2.right_stick_y);
 
         //When A or Y is pressed, run the launchers at low or high power respectively
-        if(gamepad2.a || gamepad2.y) {
+        /*if(gamepad2.a || gamepad2.y) {
             //Low power shot
             if (gamepad2.a) {
                 leftLauncherMotor.setPower(.45);
@@ -236,7 +240,7 @@ public class NewTroTeleOp extends OpMode
         else {
             leftLauncherMotor.setPower(0);
             rightLauncherMotor.setPower(0);
-        }
+        }*/
 
         //Toggle reverse when x is pressed.
         if (gamepad1.x == true && wasX1Pressed == false) {
@@ -258,11 +262,16 @@ public class NewTroTeleOp extends OpMode
             toggleLeftServo();
         }
         wasLeftBumperPressed = gamepad2.left_bumper;
-//
-//        if (gamepad2.y) launch();
-//        checkLaunch();
-//
-//        power += changeRate * gamepad2.right_stick_y;
+
+        capBallWinch.setPosition(gamepad2.left_stick_y / 5 + 0.697);
+        telemetry.addData("thing", gamepad2.left_stick_y / 5 + 0.697);
+        telemetry.addData("power", power);
+
+        if (gamepad2.y) launch();
+        checkLaunch();
+
+        if (gamepad2.a) power -= changeRate;
+        if (gamepad2.b) power += changeRate;
     }
 
     /*
@@ -275,7 +284,7 @@ public class NewTroTeleOp extends OpMode
     public void checkLaunch() {
         if (System.currentTimeMillis() <= startLaunch + accelerationTime + elevatorTime + 100 && launch) {
             if (System.currentTimeMillis() >= startLaunch + accelerationTime) {
-                elevatorMotor.setPower(-1);
+                elevatorMotor.setPower(1);
             }
 
             if (System.currentTimeMillis() >= startLaunch + accelerationTime + elevatorTime) {
@@ -293,7 +302,7 @@ public class NewTroTeleOp extends OpMode
 
         if (voltage > power) {
             leftLauncherMotor.setPower(power / (voltage - drop));
-            rightLauncherMotor.setPower(-power / (voltage - drop));
+            rightLauncherMotor.setPower(power / (voltage - drop));
             startLaunch = System.currentTimeMillis();
             launch = true;
         }

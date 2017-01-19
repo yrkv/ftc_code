@@ -37,6 +37,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -88,7 +89,7 @@ public class TroTeleOp extends OpMode
     private double changeRate = 0.0005;
     private boolean automaticBeacons = false;
 
-    private int accelerationTime = 3000;
+    private int accelerationTime = 400;
     private int elevatorTime = 400;
 
     private boolean launch = false;
@@ -115,6 +116,8 @@ public class TroTeleOp extends OpMode
       
         leftLauncherMotor = hardwareMap.dcMotor.get("left launcher");
         rightLauncherMotor = hardwareMap.dcMotor.get("right launcher");
+
+        leftLauncherMotor.setDirection(DcMotor.Direction.REVERSE);
 
         beaconColorSensor = hardwareMap.colorSensor.get("beacon color sensor");
         lineColorSensor = hardwareMap.colorSensor.get("line color sensor");
@@ -162,7 +165,6 @@ public class TroTeleOp extends OpMode
     @Override
     public void loop() {
         telemetry.addData("power", power);
-        telemetry.addData("voltage", hardwareMap.voltageSensor.get("Motor Controller 1").getVoltage());
         telemetry.addData("rgb1", beaconColorSensor.red() + ", " + beaconColorSensor.green() + ", " + beaconColorSensor.blue());
         telemetry.addData("rgb2", lineColorSensor.red() + ", " + lineColorSensor.green() + ", " + lineColorSensor.blue());
      //   telemetry.addData("gyro", gyro.rawX() + ", " + gyro.rawY() + ", " + gyro.rawZ() + ", " + gyro.getIntegratedZValue());
@@ -182,8 +184,6 @@ public class TroTeleOp extends OpMode
 
         collectorServo.setPosition(gamepad2.right_stick_y);
 
-        telemetry.addData("left encoder", leftMotor.getCurrentPosition());
-        telemetry.addData("right encoder", rightMotor.getCurrentPosition());
 
         if (gamepad1.x == true && wasX1Pressed == false) {
             reverse *= -1;
@@ -220,7 +220,7 @@ public class TroTeleOp extends OpMode
     public void checkLaunch() {
         if (System.currentTimeMillis() <= startLaunch + accelerationTime + elevatorTime + 100 && launch) {
             if (System.currentTimeMillis() >= startLaunch + accelerationTime) {
-                elevatorMotor.setPower(-1);
+                elevatorMotor.setPower(1);
             }
 
             if (System.currentTimeMillis() >= startLaunch + accelerationTime + elevatorTime) {
@@ -238,7 +238,7 @@ public class TroTeleOp extends OpMode
 
         if (voltage > power) {
             leftLauncherMotor.setPower(power / (voltage - drop));
-            rightLauncherMotor.setPower(-power / (voltage - drop));
+            rightLauncherMotor.setPower(power / (voltage - drop));
             startLaunch = System.currentTimeMillis();
             launch = true;
         }
