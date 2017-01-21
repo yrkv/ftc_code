@@ -28,7 +28,7 @@ public class NewTroAutoBlue extends LinearOpMode {
     private Servo rightServo;
     private Servo capBallWinch;
 
-    private double turnPower = (0.20 * 13.8);
+    private double turnPower = (0.25);
     private double turnMultiplier = 1.8;
 
     private ModernRoboticsI2cGyro gyro;
@@ -40,7 +40,7 @@ public class NewTroAutoBlue extends LinearOpMode {
 
     private int elevatorTime = 400;
 
-    private double launchPower = 3.0;
+    private double launchPower = (0.33);
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -64,8 +64,8 @@ public class NewTroAutoBlue extends LinearOpMode {
         leftServo = hardwareMap.servo.get("left servo");
         rightServo = hardwareMap.servo.get("right servo");
         capBallWinch = hardwareMap.servo.get("cap ball winch");
-        leftServo.scaleRange(0.85, 0.95);
-        rightServo.scaleRange(0.85, 0.95);
+        leftServo.scaleRange(0.86, 1);
+        rightServo.scaleRange(0.86, 1);
 
         leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -84,7 +84,7 @@ public class NewTroAutoBlue extends LinearOpMode {
         beaconColorSensor.enableLed(true);
         beaconColorSensor.enableLed(false);
 
-        capBallWinch.setPosition(0.8);
+        capBallWinch.setPosition(0.675);
 
         telemetry.addData(">", "Gyro Calibrating. Do Not move!");
         telemetry.update();
@@ -103,7 +103,6 @@ public class NewTroAutoBlue extends LinearOpMode {
         telemetry.addData(">", "Gyro Calibrated.  Press Start.");
         telemetry.update();
 
-        turnPower = getAdjustedPower(turnPower);
 
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
@@ -114,8 +113,8 @@ public class NewTroAutoBlue extends LinearOpMode {
 
         launchBalls();
 
-        //Drive forward 20 inches.
-        encoderDrive(0.5, 10, 15, 5);
+        //Drive forward 15 inches.
+        encoderDrive(0.5, 12, 12, 5);
 
         //Turn to 135 degrees.
         gyroTurn(turnPower, 135, 1);
@@ -124,7 +123,7 @@ public class NewTroAutoBlue extends LinearOpMode {
 
         //Use the line sensor to drive to the beacon tape.
         lineColorSensor.enableLed(true);
-        encoderDriveToTape(5, 0.75, -60, -60, 5);
+        encoderDriveToTape(5, 0.75, -65, -65, 5);
         encoderDrive(1, 0.2, 0.2, 1);
         encoderDriveToTape(5, 0.2, 5, 5, 3);
         lineColorSensor.enableLed(false);
@@ -138,10 +137,12 @@ public class NewTroAutoBlue extends LinearOpMode {
         encoderDriveToBeacon(3, 0.1, 10, 10, 3);
 
         //Determine which side the red side is on and move the beacon bumper in front of it.
-        if (beaconColorSensor.blue() > beaconColorSensor.red())
+        if (beaconColorSensor.blue() < beaconColorSensor.red()) {
             leftServo.setPosition(1);
-        else
+        }
+        else {
             rightServo.setPosition(1);
+        }
 
         //Bump the button and back up.
         encoderDrive(0.5, 2, 2, 1);
@@ -177,10 +178,12 @@ public class NewTroAutoBlue extends LinearOpMode {
         encoderDriveToBeacon(3, .1, 10, 10, 3);
 
         //Determine which side the red side is on and move the beacon bumper in front of it.
-        if (beaconColorSensor.blue() > beaconColorSensor.red())
+        if (beaconColorSensor.blue() < beaconColorSensor.red()) {
             leftServo.setPosition(1);
-        else
+        }
+        else {
             rightServo.setPosition(1);
+        }
 
         //Bump the button and back up.
         encoderDrive(0.5, 2, 2, 1);
@@ -207,7 +210,9 @@ public class NewTroAutoBlue extends LinearOpMode {
     }
 
     private void launchBalls() throws InterruptedException {
-        double p = getAdjustedPower(launchPower);
+//        double p = getAdjustedPower(launchPower);
+
+        double p = launchPower;
 
         leftLauncherMotor.setPower(p);
         rightLauncherMotor.setPower(p);
@@ -215,6 +220,11 @@ public class NewTroAutoBlue extends LinearOpMode {
         elevatorMotor.setPower(1);
         sleep(elevatorTime);
         elevatorMotor.setPower(0);
+        leftLauncherMotor.setPower(0);
+        rightLauncherMotor.setPower(0);
+        sleep(200);
+        leftLauncherMotor.setPower(p);
+        rightLauncherMotor.setPower(p);
         sleep(400);
         elevatorMotor.setPower(1);
         sleep(elevatorTime);
@@ -293,7 +303,7 @@ public class NewTroAutoBlue extends LinearOpMode {
         else {
             steer = getSteer(error, PCoeff);
 
-            double multiplier = Math.abs(error) / 30 * 0.7 + 0.3;
+            double multiplier = Math.abs(error) / 30 * 0.8 + 0.2;
 
             rightSpeed  = speed * steer * (Math.abs(error) > 30 ? 1 : multiplier);
             leftSpeed   = -rightSpeed;

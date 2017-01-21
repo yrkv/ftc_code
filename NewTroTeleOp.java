@@ -89,6 +89,10 @@ public class NewTroTeleOp extends OpMode
     private int leftServoPos = 0;
     private boolean wasY1Pressed = false;
 
+    private double winchMaxPosition = 0.675;
+    private double winchPosition = 0.675;
+    private double winchMinPostion = 0.185;
+
     private double liftPower = 1;
 
     boolean wasRightBumperPressed = false;
@@ -132,8 +136,8 @@ public class NewTroTeleOp extends OpMode
 
         leftServo = hardwareMap.servo.get("left servo");
         rightServo = hardwareMap.servo.get("right servo");
-        leftServo.scaleRange(0.85, 0.95);
-        rightServo.scaleRange(0.85, 0.95);
+        leftServo.scaleRange(0.86, 1);
+        rightServo.scaleRange(0.86, 1);
 
         rightMotor.setDirection(DcMotor.Direction.REVERSE);
         leftLauncherMotor.setDirection(DcMotor.Direction.REVERSE);
@@ -181,6 +185,7 @@ public class NewTroTeleOp extends OpMode
         leftServo.setPosition(0);
         collectorServo.setPosition(collectorServoPosition);
         capBallServo.setPosition(0.5);
+        capBallWinch.setPosition(winchPosition);
     }
 
     /*
@@ -191,38 +196,42 @@ public class NewTroTeleOp extends OpMode
         int t = 4;
         boolean onLine = (lineColorSensor.red() > t || lineColorSensor.green() > t || lineColorSensor.blue() > t);
         telemetry.addData("line color sensor", onLine);
+        telemetry.addData("beaker color sensor", beaconColorSensor.red() + " " + beaconColorSensor.green() + " " + beaconColorSensor.blue());
+        telemetry.addData("winchPos", winchPosition);
 
         collectorServoPosition = gamepad2.b ? 1 : 0;
         collectorServo.setPosition(collectorServoPosition);
 
         //Allow player 1 to drive using left and right joysticks
         if (reverse == 1) {
-            leftMotor.setPower(gamepad1.right_stick_y*movementMultiplier);
-            rightMotor.setPower(gamepad1.left_stick_y*movementMultiplier);
+            leftMotor.setPower(gamepad1.right_stick_y * movementMultiplier);
+            rightMotor.setPower(gamepad1.left_stick_y * movementMultiplier);
         }
         if (reverse == -1) {
             leftMotor.setPower(gamepad1.left_stick_y * movementMultiplier * reverse);
             rightMotor.setPower(gamepad1.right_stick_y * movementMultiplier * reverse);
         }
 
-        if(gamepad1.right_bumper) {
-            movementMultiplier = .1;
+        if (gamepad1.right_bumper) {
+            movementMultiplier = .2;
+        }
+        else if(gamepad1.left_bumper) {
+            movementMultiplier = .5;
         }
         else {
             movementMultiplier = 1;
         }
-
+        /* garbage?
         //Cap ball lifter.
-        if(!gamepad2.dpad_up) {
+        if (!gamepad2.dpad_up) {
             leftCapBallMotor.setPower(gamepad2.dpad_down == true ? liftPower : 0);
             rightCapBallMotor.setPower(gamepad2.dpad_down == true ? -1 * liftPower : 0);
-        }
-        else {
+        } else {
             leftCapBallMotor.setPower(-1 * liftPower);
             rightCapBallMotor.setPower(liftPower);
-        }
+        }*/
         //The -1 gets rid of the natural inverse control of the joystick.
-        elevatorMotor.setPower(-1*gamepad2.right_stick_y);
+        elevatorMotor.setPower(-1 * gamepad2.right_stick_y);
 
         //When A or Y is pressed, run the launchers at low or high power respectively
         /*if(gamepad2.a || gamepad2.y) {
@@ -248,24 +257,24 @@ public class NewTroTeleOp extends OpMode
         }
         wasX1Pressed = gamepad1.x;
 
-        if(gamepad2.right_bumper && !wasRightBumperPressed) {
+        if (gamepad2.right_bumper && !wasRightBumperPressed) {
             toggleRightServo();
         }
         wasRightBumperPressed = gamepad2.right_bumper;
 
-        if(gamepad1.left_bumper && !wasLeftBump1Pressed) {
-            toggleCapBallServo();
-        }
-        wasLeftBump1Pressed = gamepad1.left_bumper;
-
-        if(gamepad2.left_bumper && !wasLeftBumperPressed) {
+        if (gamepad2.left_bumper && !wasLeftBumperPressed) {
             toggleLeftServo();
         }
         wasLeftBumperPressed = gamepad2.left_bumper;
 
-        capBallWinch.setPosition(gamepad2.left_stick_y / 5 + 0.697);
-        telemetry.addData("thing", gamepad2.left_stick_y / 5 + 0.697);
-        telemetry.addData("power", power);
+        if(gamepad1.dpad_up && winchPosition < winchMaxPosition) {
+            winchPosition += .001;
+            capBallWinch.setPosition(winchPosition);
+        }
+        else if(gamepad1.dpad_down && winchPosition > winchMinPostion) {
+            winchPosition -= .001;
+            capBallWinch.setPosition(winchPosition);
+        }
 
         if (gamepad2.y) launch();
         checkLaunch();
