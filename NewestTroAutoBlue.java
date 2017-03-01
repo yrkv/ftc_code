@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 @Autonomous(name="Pushbot: Auto Drive By Encoder", group="Pushbot")
-public class TroAutoBlue extends LinearOpMode {
+public class NewestTroAutoBlue extends LinearOpMode {
 
     /* Declare OpMode members. */
     private ElapsedTime     runtime = new ElapsedTime();
@@ -23,262 +23,228 @@ public class TroAutoBlue extends LinearOpMode {
     private DcMotor elevatorMotor;
     private DcMotor leftLauncherMotor;
     private DcMotor rightLauncherMotor;
-    
-    private double turnPower = 4.5;
 
-    private Servo beaconServo;
+    private Servo leftServo;
+    private Servo rightServo;
+    private Servo capBallWinch;
+
+    private double turnPower = (0.25);
+    private double turnMultiplier = 1.8;
 
     private ModernRoboticsI2cGyro gyro;
     private ColorSensor lineColorSensor;
     private ColorSensor beaconColorSensor;
 
-    private double power = 3.7; // 4.34
-    private int accelerationTime = 3000;
+    private int launcherCountsPerSecond = (int)(44.4 * 20);
+    private double currentPower = 0.3;
+
     private int elevatorTime = 400;
+
+    private double launchPower = (0.33);
 
     @Override
     public void runOpMode() throws InterruptedException {
-
-        /*
-         * Initialize the drive system variables.
-         * The init() method of the hardware class does all the work here
-         */
-        // Send telemetry message to signify robot waiting;
-        telemetry.addData("Status", "Resetting Encoders");
-        telemetry.update();
-
-        leftMotor  = hardwareMap.dcMotor.get("left motor");
-        rightMotor = hardwareMap.dcMotor.get("right motor");
-        elevatorMotor = hardwareMap.dcMotor.get("elevator");
-       // collectorMotor = hardwareMap.dcMotor.get("collector");
-        leftLauncherMotor = hardwareMap.dcMotor.get("left launcher");
+        leftMotor          = hardwareMap.dcMotor.get("left motor");
+        rightMotor         = hardwareMap.dcMotor.get("right motor");
+        elevatorMotor      = hardwareMap.dcMotor.get("elevator");
+        leftLauncherMotor  = hardwareMap.dcMotor.get("left launcher");
         rightLauncherMotor = hardwareMap.dcMotor.get("right launcher");
 
-        beaconServo = hardwareMap.servo.get("beacon servo");
-        beaconServo.scaleRange(0.05, 0.95);
-
-
-
         gyro = (ModernRoboticsI2cGyro)hardwareMap.gyroSensor.get("gyro");
+
         rightMotor.setDirection(DcMotor.Direction.REVERSE);
+        leftLauncherMotor.setDirection(DcMotor.Direction.REVERSE);
 
         lineColorSensor = hardwareMap.colorSensor.get("line color sensor");
         beaconColorSensor = hardwareMap.colorSensor.get("beacon color sensor");
 
-        lineColorSensor.setI2cAddress(I2cAddr.create8bit(0x3a));
-        beaconColorSensor.setI2cAddress(I2cAddr.create8bit(0x3c));
+        lineColorSensor.setI2cAddress(I2cAddr.create8bit(0x3c));
+        beaconColorSensor.setI2cAddress(I2cAddr.create8bit(0x3a));
+
+        leftServo = hardwareMap.servo.get("left servo");
+        rightServo = hardwareMap.servo.get("right servo");
+        capBallWinch = hardwareMap.servo.get("cap ball winch");
+        leftServo.scaleRange(0.86, 1);
+        rightServo.scaleRange(0.86, 1);
 
         leftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         idle();
-
         leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        // Send telemetry message to indicate successful Encoder reset
-        lineColorSensor.resetDeviceConfigurationForOpMode();
-        lineColorSensor.enableLed(false);
-        lineColorSensor.enableLed(true);
 
-        beaconColorSensor.resetDeviceConfigurationForOpMode();
+        leftLauncherMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightLauncherMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        idle();
+        leftLauncherMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightLauncherMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        lineColorSensor.enableLed(false);
         beaconColorSensor.enableLed(true);
         beaconColorSensor.enableLed(false);
+
+        capBallWinch.setPosition(0.675);
 
         telemetry.addData(">", "Gyro Calibrating. Do Not move!");
         telemetry.update();
         gyro.calibrate();
 
         // make sure the gyro is calibrated.
-        while (gyro.isCalibrating())  {
+        int counter = 0;
+        while (gyro.isCalibrating()) {
             Thread.sleep(50);
             idle();
+            telemetry.addData(">", counter);
+            telemetry.update();
+            counter++;
         }
 
         telemetry.addData(">", "Gyro Calibrated.  Press Start.");
         telemetry.update();
+
+
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
+        runtime.reset();
 
-        beaconServo.setPosition(0);
+        leftServo.setPosition(0);
+        rightServo.setPosition(0);
 
-        double p = getAdjustedPower(power);
-        leftLauncherMotor.setPower(p);rightLauncherMotor.setPower(-p);
-        sleep(accelerationTime);
-        elevatorMotor.setPower(-1);
-        sleep(elevatorTime);
-        elevatorMotor.setPower(0);leftLauncherMotor.setPower(-0.9);rightLauncherMotor.setPower(-0.9);
-        sleep(500);
-        leftLauncherMotor.setPower(0);rightLauncherMotor.setPower(0);
-        sleep(3500);
+        launchBalls();
 
-        leftLauncherMotor.setPower(p*0.9);rightLauncherMotor.setPower(-p*0.9);
-        sleep(accelerationTime);
-        elevatorMotor.setPower(-1);
-        sleep(elevatorTime + 500);
-        elevatorMotor.setPower(0);leftLauncherMotor.setPower(0);rightLauncherMotor.setPower(0);
-        sleep(500);
+        //Drive forward 15 inches.
+        encoderDrive(0.5, 15, 15, 5);
 
+        //Turn to 135 degrees.
+//        gyroTurn(turnPower, 135, 1);
+//        sleep(200);
+//        gyroTurn(turnPower * turnMultiplier, 135, 0);
 
-        encoderDrive(0.5, 22, 22, 5);
+        encoderRotate(turnPower, 135, 5);
 
+        //Use the line sensor to drive to the beacon tape.
+        lineColorSensor.enableLed(true);
+        encoderDriveToTape(5, 0.75, -65, -65, 5);
+        encoderDrive(1, 0.2, 0.2, 1);
+        encoderDriveToTape(5, 0.2, 5, 5, 3);
+        lineColorSensor.enableLed(false);
 
-        p = getAdjustedPower(turnPower);
-        gyroTurn(p, -45, 1);
-        sleep(500);
-        gyroTurn(p * 1.2, -45, 0);
+        //Turn to 90 degrees (facing the beacon).
+//        gyroTurn(turnPower, -90, 1);
+//        sleep(200);
+//        gyroTurn(turnPower * turnMultiplier, -90, 0);
 
-        encoderDriveToTape(5, 0.5, 58, 58, 5);
+        encoderRotate(turnPower, 135, 5);
+
+        //Move closer to the beacon for the sensor.
+        encoderDriveToBeacon(3, 0.1, 10, 10, 3);
+
+        //Determine which side the red side is on and move the beacon bumper in front of it.
+        if (beaconColorSensor.blue() < beaconColorSensor.red()) {
+            rightServo.setPosition(1);
+        }
+        else {
+            leftServo.setPosition(1);
+        }
+
+        //Bump the button and back up.
+        encoderDrive(0.5, 2, 2, 1);
+        sleep(100);
+        encoderDrive(0.5, 4, 4, 1);
+        encoderDrive(0.5, -5, -5, 1);
+
+        //Reset servo positions.
+        leftServo.setPosition(0);
+        rightServo.setPosition(0);
+
+        //Turn to the other beacon's tape.
+        gyroTurn(turnPower, 0, 1);
+        sleep(200);
+        gyroTurn(turnPower*turnMultiplier, 0, 0);
+
+        //Drive up to the other beacon's tape.
+        encoderDrive(1, 2, 2, 2);
+        lineColorSensor.enableLed(true);
+        encoderDriveToTape(5, 0.75, 50, 50, 5);
         encoderDrive(1, -0.2, -0.2, 1);
         encoderDriveToTape(5, 0.2, -5, -5, 3);
         lineColorSensor.enableLed(false);
 
+        //Turn to 90 degrees (facing the beacon).
+//        gyroTurn(turnPower, 90, 1);
+//        sleep(200);
+//        gyroTurn(turnPower * turnMultiplier, 90, 0);
 
-        p = getAdjustedPower(turnPower);
-        gyroTurn(p, 90, 1);
-        sleep(500);
-        gyroTurn(p * 1.2, 90, 0);
+        encoderRotate(turnPower, -90, 5);
 
-        encoderDrive(0.4, -15, -15, 5);
+        //Move closer to the beacon for the sensor.
+        encoderDriveToBeacon(3, .1, 10, 10, 3);
 
-        encoderDriveToBeacon(3, 0.1, -10, -10, 3);
+        //Determine which side the red side is on and move the beacon bumper in front of it.
+        if (beaconColorSensor.blue() < beaconColorSensor.red()) {
+            rightServo.setPosition(1);
+        }
+        else {
+            leftServo.setPosition(1);
+        }
 
-        beaconServo.setPosition(beaconColorSensor.blue() > beaconColorSensor.red() ? 1 : 0); // adjust for actual servo positions
-
-        encoderDrive(0.5, -2, -2, 1);
+        //Bump the button and back up.
+        encoderDrive(0.5, 2, 2, 1);
         sleep(100);
-        encoderDrive(0.5, -4, -4, 1);
-        encoderDrive(0.5, 5, 5, 1);
+        encoderDrive(0.5, 4, 4, 1);
+        encoderDrive(0.5, -6, -6, 1);
 
-        /*gyroTurn(0.3, 180);
+        leftServo.setPosition(0);
+        rightServo.setPosition(0);
 
-        encoderDrive(0.6, -25, -25, 5);
+        //Turn toward at the cap ball.
+//        gyroTurn(turnPower, -145, 1);
+        encoderRotate(turnPower, 55, 5);
 
-        double degrees = Math.atan((108-20-25)/(49)) / PI * 180;
-        gyroTurn(0.3, 180 - Math.round(degrees));
-
-        lineColorSensor.enableLed(true);
-
-        encoderDriveToTape(5, 1, -80, -80, 5);
-        encoderDriveToTape(5, 0.2, 4, 4, 3);
-
-
-        gyroTurn(0.3, 90);
-
-        encoderDrive(0.4, -14, -14, 5);
-
-        encoderDriveToBeacon(5, 0.15, -3, -3, 3);
-
-        beaconServo.setPosition(beaconColorSensor.blue() > beaconColorSensor.red() ? 1 : 0); // adjust for actual servo positions
-
-        encoderDrive(0.5, -2, -2, 1);*/
-
-//        while (!(beaconColorSensor.red() > 5 || beaconColorSensor.blue() > 5)) {
-//            gyroDrive(0.06, 0.1, 270);
-//        }
-//
-//        beaconServo.setPosition(beaconColorSensor.red() > beaconColorSensor.blue() ? 1 : 0);
-
-//        gyroDrive(0.1, 2, 270);
+        //Drive to the cap ball to bump it.
+        encoderDrive(0.2, 60, 60, 15);
 
         telemetry.addData("Path2",  "Running at %7d :%7d",
                 leftMotor.getCurrentPosition(),
                 rightMotor.getCurrentPosition());
         telemetry.update();
-        sleep(10000);
         telemetry.addData("Path", "Complete");
-        //telemetry.addData("power", power);
 
         telemetry.update();
     }
-    
+
+    private void launchBalls() throws InterruptedException {
+//        double p = getAdjustedPower(launchPower);
+
+        double p = launchPower;
+
+        leftLauncherMotor.setPower(p);
+        rightLauncherMotor.setPower(p);
+        sleep(400);
+        elevatorMotor.setPower(1);
+        sleep(elevatorTime);
+        elevatorMotor.setPower(0);
+        leftLauncherMotor.setPower(0);
+        rightLauncherMotor.setPower(0);
+        sleep(200);
+        leftLauncherMotor.setPower(p);
+        rightLauncherMotor.setPower(p);
+        sleep(400);
+        elevatorMotor.setPower(1);
+        sleep(elevatorTime);
+        elevatorMotor.setPower(0);
+        leftLauncherMotor.setPower(0);
+        rightLauncherMotor.setPower(0);
+    }
+
     private double getAdjustedPower(double p) {
-    	double voltage = hardwareMap.voltageSensor.get("Motor Controller 1").getVoltage();
-        double drop = turnPower / 13.8;
-        return power / (voltage - drop);
+        double voltage = hardwareMap.voltageSensor.get("Motor Controller 1").getVoltage();
+        double drop = p / 13.8;
+        return launchPower / (voltage - drop);
     }
 
-    public void gyroDrive ( double speed,
-                            double distance,
-                            double angle) throws InterruptedException {
-
-        int     newLeftTarget;
-        int     newRightTarget;
-        int     moveCounts;
-        double  max;
-        double  error;
-        double  steer;
-        double  leftSpeed;
-        double  rightSpeed;
-
-        // Ensure that the opmode is still active
-        if (opModeIsActive()) {
-
-            // Determine new target position, and pass to motor controller
-            moveCounts = (int)(distance * COUNTS_PER_INCH);
-            newLeftTarget = leftMotor.getCurrentPosition() + moveCounts;
-            newRightTarget = rightMotor.getCurrentPosition() + moveCounts;
-
-            // Set Target and Turn On RUN_TO_POSITION
-            leftMotor.setTargetPosition(newLeftTarget);
-            rightMotor.setTargetPosition(newRightTarget);
-
-            leftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            rightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-            // start motion.
-            speed = Range.clip(Math.abs(speed), 0.0, 1.0);
-            leftMotor.setPower(speed);
-            rightMotor.setPower(speed);
-
-            // keep looping while we are still active, and BOTH motors are running.
-            while (opModeIsActive() &&
-                    (leftMotor.isBusy() && rightMotor.isBusy())) {
-
-                // adjust relative speed based on heading error.
-                error = getError(angle);
-                steer = getSteer(error, 0.15);
-
-                // if driving in reverse, the motor correction also needs to be reversed
-                if (distance < 0)
-                    steer *= -1.0;
-
-                leftSpeed = speed - steer;
-                rightSpeed = speed + steer;
-
-                // Normalize speeds if any one exceeds +/- 1.0;
-                max = Math.max(Math.abs(leftSpeed), Math.abs(rightSpeed));
-                if (max > 1.0)
-                {
-                    leftSpeed /= max;
-                    rightSpeed /= max;
-                }
-
-                leftMotor.setPower(leftSpeed);
-                rightMotor.setPower(rightSpeed);
-
-                // Display drive status for the driver.
-                telemetry.addData("Err/St",  "%5.1f/%5.1f",  error, steer);
-                telemetry.addData("Target",  "%7d:%7d",      newLeftTarget,  newRightTarget);
-                telemetry.addData("Actual",  "%7d:%7d",      leftMotor.getCurrentPosition(),
-                        rightMotor.getCurrentPosition());
-                telemetry.addData("Speed",   "%5.2f:%5.2f",  leftSpeed, rightSpeed);
-                telemetry.update();
-
-                // Allow time for other processes to run.
-                idle();
-            }
-
-            // Stop all motion;
-            leftMotor.setPower(0);
-            rightMotor.setPower(0);
-
-            // Turn off RUN_TO_POSITION
-            leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        }
-    }
-
-    public void gyroTurn (  double speed, double angle, double err)
+    public void gyroTurn (double speed, double angle, double err)
             throws InterruptedException {
 
         // keep looping while we are still active, and not on heading.
@@ -289,6 +255,40 @@ public class TroAutoBlue extends LinearOpMode {
         }
     }
 
+    //    void launch(double currentPower) throws InterruptedException {
+    void launch() throws InterruptedException {
+        int leftEncoder = leftLauncherMotor.getCurrentPosition();
+        int rightEncoder = rightLauncherMotor.getCurrentPosition();
+
+        sleep(100);
+        boolean launch = false;
+        while (true) {
+            int currentSpeed = (leftLauncherMotor.getCurrentPosition() - leftEncoder + rightLauncherMotor.getCurrentPosition() - rightEncoder) / 2 * 10;
+
+            leftEncoder = leftLauncherMotor.getCurrentPosition();
+            rightEncoder = rightLauncherMotor.getCurrentPosition();
+
+            if (Math.abs(currentSpeed - launcherCountsPerSecond) <= 1) {
+                if (launch) break;
+                launch = true;
+            }
+            else if (currentSpeed < launcherCountsPerSecond) {
+                currentPower += 0.01;
+            }
+            else {
+                currentPower -= 0.01;
+            }
+            leftLauncherMotor.setPower(currentPower);
+            rightLauncherMotor.setPower(currentPower);
+            //Update the displays
+            telemetry.addData("power", currentPower);
+            telemetry.addData("left", leftLauncherMotor.getCurrentPosition() / 44.4 / runtime.seconds());
+            telemetry.addData("right", rightLauncherMotor.getCurrentPosition() / 44.4 / runtime.seconds());
+            telemetry.update();
+            sleep(100);
+        }
+    }
+
     boolean onHeading(double speed, double angle, double PCoeff, double err) {
         double   error ;
         double   steer ;
@@ -296,7 +296,7 @@ public class TroAutoBlue extends LinearOpMode {
         double leftSpeed;
         double rightSpeed;
 
-        // determine turn power based on +/- error
+        // determine turn launchPower based on +/- error
         error = getError(angle);
 
         if (Math.abs(error) <= err) {
@@ -308,7 +308,7 @@ public class TroAutoBlue extends LinearOpMode {
         else {
             steer = getSteer(error, PCoeff);
 
-            double multiplier = Math.abs(error) / 30 * 0.7 + 0.3;
+            double multiplier = Math.abs(error) / 30 * 0.8 + 0.2;
 
             rightSpeed  = speed * steer * (Math.abs(error) > 30 ? 1 : multiplier);
             leftSpeed   = -rightSpeed;
@@ -447,8 +447,8 @@ public class TroAutoBlue extends LinearOpMode {
     }
 
     public void encoderDriveToBeacon(int threshold, double speed,
-                                   double leftInches, double rightInches,
-                                   double timeoutS) throws InterruptedException {
+                                     double leftInches, double rightInches,
+                                     double timeoutS) throws InterruptedException {
         int newLeftTarget;
         int newRightTarget;
 
@@ -497,5 +497,12 @@ public class TroAutoBlue extends LinearOpMode {
 
             //  sleep(250);   // optional pause after each move
         }
+    }
+
+    public void encoderRotate(double speed, int degrees, double timeoutS) throws InterruptedException {
+        double inches = degrees / 45.0 * Math.PI * 2 * 1.1625;
+        if (degrees < 0) inches -= 0.15;
+        else inches += 0.15;
+        encoderDrive(speed, inches, -inches, timeoutS);
     }
 }
